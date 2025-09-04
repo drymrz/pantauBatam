@@ -4,12 +4,13 @@ import { uploadThumbnail } from '../../services/storageService';
 import type { Camera } from '../../types';
 
 interface CameraFormProps {
-    camera?: Camera;
+    camera?: Camera | null;
+    isCreateMode: boolean;
     onSuccess: () => void;
-    onCancel: () => void;
+    onClose: () => void;
 }
 
-const CameraForm = ({ camera, onSuccess, onCancel }: CameraFormProps) => {
+const CameraForm = ({ camera, isCreateMode, onSuccess, onClose }: CameraFormProps) => {
     const [formData, setFormData] = useState<Omit<Camera, 'id'>>({
         name: '',
         streamUrl: '',
@@ -96,20 +97,16 @@ const CameraForm = ({ camera, onSuccess, onCancel }: CameraFormProps) => {
     };
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4">
-                {camera ? 'Edit Camera' : 'Add New Camera'}
-            </h2>
-
+        <>
             {error && (
-                <div className="mb-4 p-4 bg-red-100 text-red-800 rounded-md">
+                <div className="mb-4 p-4 bg-red-900 text-red-100 rounded-md">
                     {error}
                 </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">
                         Camera Name
                     </label>
                     <input
@@ -119,13 +116,13 @@ const CameraForm = ({ camera, onSuccess, onCancel }: CameraFormProps) => {
                         value={formData.name}
                         onChange={handleChange}
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Enter camera name"
                     />
                 </div>
 
                 <div>
-                    <label htmlFor="streamUrl" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="streamUrl" className="block text-sm font-medium text-gray-300 mb-1">
                         Stream URL
                     </label>
                     <textarea
@@ -135,13 +132,13 @@ const CameraForm = ({ camera, onSuccess, onCancel }: CameraFormProps) => {
                         onChange={handleChange}
                         required
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Enter stream URL (e.g., rtmp://example.com/stream)"
                     />
                 </div>
 
                 <div>
-                    <label htmlFor="thumbnail" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="thumbnail" className="block text-sm font-medium text-gray-300 mb-1">
                         Thumbnail Image
                     </label>
                     <input
@@ -150,14 +147,14 @@ const CameraForm = ({ camera, onSuccess, onCancel }: CameraFormProps) => {
                         name="thumbnail"
                         accept="image/*"
                         onChange={handleThumbnailChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     {thumbnailPreview && (
                         <div className="mt-2">
                             <img
                                 src={thumbnailPreview}
                                 alt="Thumbnail preview"
-                                className="w-32 h-24 object-cover rounded-md border"
+                                className="w-32 h-24 object-cover rounded-md border border-gray-600"
                             />
                         </div>
                     )}
@@ -166,8 +163,8 @@ const CameraForm = ({ camera, onSuccess, onCancel }: CameraFormProps) => {
                 <div className="flex space-x-3 pt-4">
                     <button
                         type="button"
-                        onClick={onCancel}
-                        className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                        onClick={onClose}
+                        className="flex-1 px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 border border-gray-600 rounded-md hover:bg-gray-600"
                         disabled={isSubmitting}
                     >
                         Cancel
@@ -184,7 +181,7 @@ const CameraForm = ({ camera, onSuccess, onCancel }: CameraFormProps) => {
                     </button>
                 </div>
             </form>
-        </div>
+        </>
     );
 };
 

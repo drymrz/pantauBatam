@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAllCameras, deleteCamera } from '../services/cameraService';
+import { deleteThumbnail } from '../services/storageService';
 import type { Camera } from '../types';
 import CameraForm from '../components/admin/CameraForm';
 
@@ -10,6 +11,42 @@ const AdminPage = () => {
     const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isCreateMode, setIsCreateMode] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [password, setPassword] = useState('');
+    const [authError, setAuthError] = useState('');
+
+    // Check authentication on mount
+    useEffect(() => {
+        const authKey = localStorage.getItem('pastiganteng');
+        if (authKey === 'true') {
+            setIsAuthenticated(true);
+        } else {
+            setShowAuthModal(true);
+        }
+    }, []);
+
+    // Handle authentication
+    const handleAuth = () => {
+        const adminPassword = import.meta.env.VITE_PASSWORD_ADMIN_GANTENG || 'akuganteng99';
+        if (password === adminPassword) {
+            localStorage.setItem('pastiganteng', 'true');
+            setIsAuthenticated(true);
+            setShowAuthModal(false);
+            setPassword('');
+            setAuthError('');
+        } else {
+            setAuthError('Password salah cuy! 🤔');
+            setPassword('');
+        }
+    };
+
+    // Handle logout
+    const handleLogout = () => {
+        localStorage.removeItem('pastiganteng');
+        setIsAuthenticated(false);
+        setShowAuthModal(true);
+    };
 
     // Fetch cameras
     const fetchCameras = async () => {
@@ -18,7 +55,7 @@ const AdminPage = () => {
             setError(null);
             const response = await getAllCameras();
 
-            if (response.success) {
+            if (response.success && response.data) {
                 setCameras(response.data);
             } else {
                 setError(response.message || 'Failed to fetch cameras');
@@ -32,8 +69,10 @@ const AdminPage = () => {
     };
 
     useEffect(() => {
-        fetchCameras();
-    }, []);
+        if (isAuthenticated) {
+            fetchCameras();
+        }
+    }, [isAuthenticated]);
 
     // Handle camera edit
     const handleEdit = (camera: Camera) => {
@@ -50,9 +89,29 @@ const AdminPage = () => {
 
         try {
             setError(null);
+
+            // Find camera to get thumbnail info
+            const cameraToDelete = cameras.find(camera => camera.id === id);
+
+            // Delete camera from database
             const response = await deleteCamera(id);
 
             if (response.success) {
+                // If camera had a thumbnail, delete it from storage
+                if (cameraToDelete?.thumbnail) {
+                    try {
+                        // Extract filename from URL
+                        const thumbnailUrl = cameraToDelete.thumbnail;
+                        const urlParts = thumbnailUrl.split('/');
+                        const fileName = urlParts[urlParts.length - 1];
+
+                        await deleteThumbnail(fileName);
+                    } catch (thumbnailError) {
+                        console.error('Failed to delete thumbnail:', thumbnailError);
+                        // Don't fail the whole operation if thumbnail deletion fails
+                    }
+                }
+
                 setCameras(cameras.filter(camera => camera.id !== id));
                 alert('Camera deleted successfully');
             } else {
@@ -86,7 +145,8 @@ const AdminPage = () => {
 
     return (
         <div className="min-h-screen bg-gray-900 text-white">
-            <div className="container mx-auto px-4 py-8">
+            {/* Main Content - Blurred when not authenticated */}
+            <div className={`container mx-auto px-4 py-8 transition-all duration-300 ${!isAuthenticated ? 'blur-sm pointer-events-none' : ''}`}>
                 <header className="mb-8">
                     <div className="flex justify-between items-center mb-4">
                         <h1 className="text-3xl font-bold">PantauBatam Admin</h1>
@@ -99,6 +159,15 @@ const AdminPage = () => {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                 </svg>
                                 Add New Camera
+                            </button>
+                            <button
+                                onClick={handleLogout}
+                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                                Logout
                             </button>
                             <a
                                 href="/"
@@ -139,15 +208,14 @@ const AdminPage = () => {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">ID</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Stream URL</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Location</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Thumbnail</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-700">
                                     {cameras.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="px-6 py-4 text-center text-gray-400">
+                                            <td colSpan={5} className="px-6 py-4 text-center text-gray-400">
                                                 No cameras found. Click "Add New Camera" to create one.
                                             </td>
                                         </tr>
@@ -157,11 +225,16 @@ const AdminPage = () => {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{camera.id.substring(0, 8)}...</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm">{camera.name}</td>
                                                 <td className="px-6 py-4 text-sm truncate max-w-xs">{camera.streamUrl}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">{camera.location || '-'}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${camera.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                        {camera.isActive ? 'Active' : 'Inactive'}
-                                                    </span>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                    {camera.thumbnail ? (
+                                                        <img
+                                                            src={camera.thumbnail}
+                                                            alt={camera.name}
+                                                            className="w-16 h-12 object-cover rounded border border-gray-600"
+                                                        />
+                                                    ) : (
+                                                        <span className="text-gray-400">No thumbnail</span>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                     <div className="flex space-x-2">
@@ -213,6 +286,52 @@ const AdminPage = () => {
                                 onClose={handleFormClose}
                                 onSuccess={handleFormSuccess}
                             />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Authentication Modal */}
+            {showAuthModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-800 rounded-lg p-8 w-full max-w-md">
+                        <div className="text-center mb-6">
+                            <div className="text-6xl mb-4">🔐</div>
+                            <h2 className="text-2xl font-bold text-white mb-2">Admin Access</h2>
+                            <p className="text-gray-400">Masukkan password untuk mengakses halaman admin</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleAuth()}
+                                    placeholder="Password"
+                                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    autoFocus
+                                />
+                            </div>
+
+                            {authError && (
+                                <div className="text-red-400 text-sm text-center">
+                                    {authError}
+                                </div>
+                            )}
+
+                            <button
+                                onClick={handleAuth}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                            >
+                                Masuk
+                            </button>
+                        </div>
+
+                        <div className="mt-6 text-center">
+                            <p className="text-gray-500 text-sm">
+                                Hint: Password nya rahasia banget! 😎
+                            </p>
                         </div>
                     </div>
                 </div>

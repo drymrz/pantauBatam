@@ -1,10 +1,8 @@
 import { createBrowserRouter } from 'react-router-dom';
 import HomePage from './pages/HomePage';
-import CameraDetailPage from './pages/CameraDetailPage';
-import ControlCenter from './components/ControlCenter';
 import ErrorPage from './pages/ErrorPage';
-import AdminCamerasPage from './pages/admin/AdminCamerasPage';
-import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminPage from './pages/AdminPage';
+import { MobileRedirect, DesktopRedirect } from './components/DeviceRedirect';
 
 const router = createBrowserRouter([
     {
@@ -13,28 +11,18 @@ const router = createBrowserRouter([
         errorElement: <ErrorPage />
     },
     {
-        path: '/camera/:id',
-        element: <CameraDetailPage />,
+        path: '/camera',
+        element: <DesktopRedirect />,
         errorElement: <ErrorPage />
     },
     {
         path: '/dashboard',
-        element: <ControlCenter />,
+        element: <MobileRedirect />,
         errorElement: <ErrorPage />
     },
     {
-        path: '/control-center',
-        element: <ControlCenter />,
-        errorElement: <ErrorPage />
-    },
-    {
-        path: '/admin',
-        element: <AdminDashboardPage />,
-        errorElement: <ErrorPage />
-    },
-    {
-        path: '/admin/cameras',
-        element: <AdminCamerasPage />,
+        path: '/apaantuh',
+        element: <AdminPage />,
         errorElement: <ErrorPage />
     }
 ]);

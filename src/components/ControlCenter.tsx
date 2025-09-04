@@ -4,7 +4,6 @@ import { getAllCameras } from '../services/cameraService';
 import { useScreenSize, SCREEN_SIZE } from '../hooks/useScreenSize';
 import type { Camera } from '../types';
 import VideoPlayer from './VideoPlayer';
-import ThumbnailGenerator from './ThumbnailGenerator';
 
 type ViewLayout = 1 | 2 | 4 | 9 | 16;
 
@@ -22,8 +21,14 @@ const ControlCenter = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-    const [viewLayout, setViewLayout] = useState<ViewLayout>(1);
-    const [selectedCameras, setSelectedCameras] = useState<SelectedCamera[]>([]);
+    const [viewLayout, setViewLayout] = useState<ViewLayout>(() => {
+        const saved = localStorage.getItem('cameraCenter_layout');
+        return saved ? (parseInt(saved) as ViewLayout) : 1;
+    });
+    const [selectedCameras, setSelectedCameras] = useState<SelectedCamera[]>(() => {
+        const saved = localStorage.getItem('cameraCenter_selectedCameras');
+        return saved ? JSON.parse(saved) : [];
+    });
 
     // Redirect mobile users to homepage
     useEffect(() => {
@@ -31,6 +36,16 @@ const ControlCenter = () => {
             navigate('/', { replace: true });
         }
     }, [screenSize, navigate]);
+
+    // Save layout to localStorage
+    useEffect(() => {
+        localStorage.setItem('cameraCenter_layout', viewLayout.toString());
+    }, [viewLayout]);
+
+    // Save selected cameras to localStorage
+    useEffect(() => {
+        localStorage.setItem('cameraCenter_selectedCameras', JSON.stringify(selectedCameras));
+    }, [selectedCameras]);
 
     useEffect(() => {
         fetchCameras();
@@ -82,21 +97,23 @@ const ControlCenter = () => {
             // Single view mode - replace the only slot
             setSelectedCameras([{ camera, position: 0, aspectMode: 'contain' }]);
         } else {
-            // Multi view mode - add to next available slot or replace if full
+            // Multi view mode - add to next available slot
             const nextPosition = selectedCameras.length;
             if (nextPosition < viewLayout) {
                 setSelectedCameras(prev => [...prev, { camera, position: nextPosition, aspectMode: 'contain' }]);
-            } else {
-                // All slots filled, replace first one and shift others
-                setSelectedCameras(prev => {
-                    const newSelection = prev.slice(1).map(item => ({
-                        ...item,
-                        position: item.position - 1
-                    }));
-                    return [...newSelection, { camera, position: viewLayout - 1, aspectMode: 'contain' }];
-                });
             }
+            // If all slots are full, do nothing (don't replace)
         }
+    };
+
+    // Helper function to check if a camera can be selected
+    const canSelectCamera = (camera: Camera) => {
+        const isAlreadySelected = selectedCameras.some(item => item.camera.id === camera.id);
+        if (isAlreadySelected) return true; // Can always deselect
+
+        if (viewLayout === 1) return true; // Single view can always replace
+
+        return selectedCameras.length < viewLayout; // Multi view only if there's space
     };
 
     const handleLayoutChange = (layout: ViewLayout) => {
@@ -231,13 +248,16 @@ const ControlCenter = () => {
                                     ) : (
                                         cameras.map((camera) => {
                                             const isActive = selectedCameras.some(item => item.camera.id === camera.id);
+                                            const canSelect = canSelectCamera(camera);
                                             return (
                                                 <div
                                                     key={camera.id}
-                                                    onClick={() => handleCameraSelect(camera)}
-                                                    className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${isActive
-                                                        ? 'bg-blue-600 hover:bg-blue-700 border-2 border-blue-400'
-                                                        : 'bg-gray-700 hover:bg-gray-600'
+                                                    onClick={() => canSelect && handleCameraSelect(camera)}
+                                                    className={`flex items-center p-3 rounded-lg transition-colors ${!canSelect
+                                                        ? 'bg-gray-800 opacity-50 cursor-not-allowed'
+                                                        : isActive
+                                                            ? 'bg-blue-600 hover:bg-blue-700 border-2 border-blue-400 cursor-pointer'
+                                                            : 'bg-gray-700 hover:bg-gray-600 cursor-pointer'
                                                         }`}
                                                 >
                                                     <div className="w-12 h-8 bg-gray-600 rounded mr-3 flex-shrink-0 overflow-hidden">
@@ -248,13 +268,17 @@ const ControlCenter = () => {
                                                                 className="w-full h-full object-cover"
                                                             />
                                                         ) : (
-                                                            <ThumbnailGenerator cameraName={camera.name} className="text-xs" />
+                                                            <img
+                                                                src="/thumbnail-placeholder.png"
+                                                                alt={camera.name}
+                                                                className="w-full h-full object-cover"
+                                                            />
                                                         )}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm font-medium truncate">{camera.name}</p>
                                                         <p className="text-xs text-gray-400">
-                                                            {isActive ? 'Active' : 'Live'}
+                                                            {!canSelect && !isActive ? 'Slots Full' : isActive ? 'Active' : 'Live'}
                                                         </p>
                                                     </div>
                                                     {isActive && (

@@ -47,7 +47,7 @@ const HomePage = () => {
         <div className="min-h-screen bg-gray-900 text-white">
             <div className="container mx-auto px-4 py-8">
                 <header className="mb-8">
-                    <div className="flex justify-between items-center mb-4">
+                    <div className="flex justify-center md:justify-between items-center mb-4">
                         <h1 className="text-3xl font-bold">PantauBatam</h1>
 
                         {isDesktopOrTablet && (
@@ -58,7 +58,7 @@ const HomePage = () => {
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                                     <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                                 </svg>
-                                Control Center
+                                Camera Center
                             </button>
                         )}
                     </div>
