@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import Hls from 'hls.js';
+import { getSecureStreamUrl } from '../utils/streamUtils';
 
 interface VideoPlayerProps {
     src: string;
@@ -35,11 +36,16 @@ const VideoPlayer = ({
         // Reset video src
         video.src = '';
 
+        // Get secure URL untuk production
+        const secureUrl = getSecureStreamUrl(src);
+        console.log('Original URL:', src);
+        console.log('Secure URL:', secureUrl);
+
         // Cek apakah browser mendukung HLS secara native (seperti Safari iOS)
         if (video.canPlayType('application/vnd.apple.mpegurl')) {
             // Safari iOS mendukung HLS secara native
             console.log('Using native HLS support');
-            video.src = src;
+            video.src = secureUrl;
 
             if (autoPlay) {
                 // Tambah delay untuk iOS
@@ -62,7 +68,7 @@ const VideoPlayer = ({
                 liveSyncDurationCount: 3,
             });
 
-            hls.loadSource(src);
+            hls.loadSource(secureUrl);
             hls.attachMedia(video);
 
             hlsRef.current = hls;
