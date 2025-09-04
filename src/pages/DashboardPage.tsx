@@ -25,13 +25,12 @@ const DashboardPage = () => {
         setIsLoading(true);
         const response = await getAllCameras();
 
-        if (response.success) {
+        if (response.success && response.data) {
           setCameras(response.data);
 
           // Jika ada ID kamera dari parameter URL, pilih kamera tersebut
           if (id) {
-            const cameraId = parseInt(id, 10);
-            const camera = response.data.find(cam => cam.id === cameraId);
+            const camera = response.data.find(cam => cam.id === id);
             if (camera) {
               setSelectedCameras([camera]);
             }
@@ -168,7 +167,6 @@ const DashboardPage = () => {
         {/* Main content */}
         <div className="flex-1 p-4 overflow-hidden">
           <MultiViewGrid
-            cameras={cameras}
             selectedCameras={selectedCameras}
             gridSize={gridSize}
           />

@@ -5,12 +5,11 @@ import type { Camera } from '../../types';
 
 interface CameraFormProps {
     camera?: Camera | null;
-    isCreateMode: boolean;
     onSuccess: () => void;
     onClose: () => void;
 }
 
-const CameraForm = ({ camera, isCreateMode, onSuccess, onClose }: CameraFormProps) => {
+const CameraForm = ({ camera, onSuccess, onClose }: CameraFormProps) => {
     const [formData, setFormData] = useState<Omit<Camera, 'id'>>({
         name: '',
         streamUrl: '',

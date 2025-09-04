@@ -20,7 +20,7 @@ const HomePage = () => {
                 setIsLoading(true);
                 const response = await getAllCameras();
 
-                if (response.success) {
+                if (response.success && response.data) {
                     setCameras(response.data);
                 } else {
                     setError(response.message || "Failed to fetch cameras");

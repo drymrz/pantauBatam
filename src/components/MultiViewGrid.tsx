@@ -1,16 +1,14 @@
-import { useState } from 'react';
 import VideoPlayer from './VideoPlayer';
 import type { Camera } from '../types';
 
 export type GridSize = 1 | 2 | 4 | 8 | 16;
 
 interface MultiViewGridProps {
-  cameras: Camera[];
   selectedCameras: Camera[];
   gridSize: GridSize;
 }
 
-const MultiViewGrid = ({ cameras, selectedCameras, gridSize }: MultiViewGridProps) => {
+const MultiViewGrid = ({ selectedCameras, gridSize }: MultiViewGridProps) => {
   // Placeholder untuk grid yang belum terisi
   const emptyGridItem = (index: number) => (
     <div key={`empty-${index}`} className="bg-gray-900 rounded-lg flex items-center justify-center">

@@ -26,8 +26,7 @@ const Sidebar = ({
 
   // Filter kamera berdasarkan pencarian
   const filteredCameras = cameras.filter(camera =>
-    camera.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    camera.location.toLowerCase().includes(searchTerm.toLowerCase())
+    camera.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const isSelected = (camera: Camera) => {

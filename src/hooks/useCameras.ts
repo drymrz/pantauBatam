@@ -13,7 +13,7 @@ export const useAllCameras = () => {
                 setIsLoading(true);
                 const response = await getAllCameras();
 
-                if (response.success) {
+                if (response.success && response.data) {
                     setCameras(response.data);
                 } else {
                     setError(response.message || 'Failed to fetch cameras');
@@ -41,7 +41,7 @@ export const useCameraById = (id: number | string) => {
         const fetchCamera = async () => {
             try {
                 setIsLoading(true);
-                const cameraId = typeof id === 'string' ? parseInt(id, 10) : id;
+                const cameraId = typeof id === 'string' ? id : String(id);
                 const response = await getCameraById(cameraId);
 
                 if (response.success && response.data) {

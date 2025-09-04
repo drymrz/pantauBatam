@@ -13,16 +13,3 @@ export interface ApiResponse<T> {
     message?: string;
     error?: string;
 }
-
-export interface User {
-    id: string;
-    username: string;
-    role: 'admin' | 'user';
-}
-
-export interface AuthResponse {
-    success: boolean;
-    token?: string;
-    user?: User;
-    error?: string;
-}

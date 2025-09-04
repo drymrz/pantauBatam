@@ -282,7 +282,6 @@ const AdminPage = () => {
                             </div>
                             <CameraForm
                                 camera={selectedCamera}
-                                isCreateMode={isCreateMode}
                                 onClose={handleFormClose}
                                 onSuccess={handleFormSuccess}
                             />

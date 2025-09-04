@@ -104,7 +104,7 @@ const AdminCamerasPage = () => {
                 <div className="mb-8">
                     <CameraForm
                         onSuccess={handleFormSuccess}
-                        onCancel={handleFormCancel}
+                        onClose={handleFormCancel}
                     />
                 </div>
             )}
@@ -114,7 +114,7 @@ const AdminCamerasPage = () => {
                     <CameraForm
                         camera={editingCamera}
                         onSuccess={handleFormSuccess}
-                        onCancel={handleFormCancel}
+                        onClose={handleFormCancel}
                     />
                 </div>
             )}
