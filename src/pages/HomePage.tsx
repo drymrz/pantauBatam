@@ -141,7 +141,7 @@ const HomePage = () => {
                         &copy; {new Date().getFullYear()} PantauBatam. All rights reserved.
                     </p>
                     <p className="text-center text-gray-500 text-xs mt-2">
-                        Stream CCTV disediakan oleh Dinas Perhubungan Kota Batam
+                        Streaming CCTV terhubung langsung dari sumber website MatanyaBatam dan CCTV ATCS publik yang tersedia.
                     </p>
                 </div>
             </footer>

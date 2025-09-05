@@ -118,6 +118,13 @@ const ControlCenter = () => {
                             }
                         }
                     }
+
+                    // Clear URL query parameter after successful initial load from URL
+                    console.log('🔄 Initial load from URL complete, clearing query parameter');
+                    const newSearchParams = new URLSearchParams(searchParams);
+                    newSearchParams.delete('camera');
+                    window.history.replaceState({}, '', `${window.location.pathname}${newSearchParams.toString() ? '?' + newSearchParams.toString() : ''}`);
+
                     return; // Skip localStorage-only handling
                 }
             }
@@ -157,6 +164,14 @@ const ControlCenter = () => {
     };
 
     const handleCameraSelect = (camera: Camera) => {
+        // Clear URL query parameter when user manually selects camera
+        if (searchParams.get('camera')) {
+            console.log('🔄 Clearing camera query parameter after manual selection');
+            const newSearchParams = new URLSearchParams(searchParams);
+            newSearchParams.delete('camera');
+            window.history.replaceState({}, '', `${window.location.pathname}${newSearchParams.toString() ? '?' + newSearchParams.toString() : ''}`);
+        }
+
         // Check if camera is already selected - if yes, remove it (toggle)
         const existingCameraIndex = selectedCameras.findIndex(item => item.camera.id === camera.id);
         if (existingCameraIndex !== -1) {
