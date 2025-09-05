@@ -13,34 +13,81 @@ interface SelectedCamera {
 }
 
 const CameraDetailPage = () => {
-    const [searchParams] = useSearchParams();
-    const id = searchParams.get('id');
+    const [searchParams, setSearchParams] = useSearchParams();
     const [allCameras, setAllCameras] = useState<Camera[]>([]);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [viewLayout, setViewLayout] = useState<ViewLayout>(() => {
         const saved = localStorage.getItem('mobileCamera_layout');
         return saved ? (parseInt(saved) as ViewLayout) : 1;
     });
-    const [selectedCameras, setSelectedCameras] = useState<SelectedCamera[]>([]);
+    const [selectedCameras, setSelectedCameras] = useState<SelectedCamera[]>(() => {
+        // Prioritaskan localStorage untuk state recovery
+        const saved = localStorage.getItem('mobileCamera_selectedCameras');
+        return saved ? JSON.parse(saved) : [];
+    });
 
-    // Save layout to localStorage
+    // Save layout and selected cameras to localStorage
     useEffect(() => {
         localStorage.setItem('mobileCamera_layout', viewLayout.toString());
     }, [viewLayout]);
 
     useEffect(() => {
+        localStorage.setItem('mobileCamera_selectedCameras', JSON.stringify(selectedCameras));
+    }, [selectedCameras]);
+
+    useEffect(() => {
         fetchCameras();
     }, []);
 
-    // Set initial camera from URL query parameter
+    // Handle initial camera selection: localStorage > URL query > default
     useEffect(() => {
-        if (id && allCameras.length > 0) {
-            const camera = allCameras.find(c => c.id === id);
-            if (camera) {
-                setSelectedCameras([{ camera, position: 0, aspectMode: 'contain' }]);
+        if (allCameras.length > 0) {
+            // Check if we have saved state first
+            const savedCameras = localStorage.getItem('mobileCamera_selectedCameras');
+            if (savedCameras) {
+                try {
+                    const parsed = JSON.parse(savedCameras);
+                    // Validate saved cameras still exist
+                    const validCameras = parsed.filter((item: SelectedCamera) =>
+                        allCameras.some(cam => cam.id === item.camera.id)
+                    );
+                    if (validCameras.length > 0) {
+                        setSelectedCameras(validCameras);
+                        // Clear URL query since we're using localStorage
+                        if (searchParams.has('camera') || searchParams.has('layout')) {
+                            setSearchParams({}, { replace: true });
+                        }
+                        return;
+                    }
+                } catch {
+                    console.warn('Invalid saved camera state');
+                }
+            }
+
+            // Fallback to URL query if no valid localStorage
+            const cameraQuery = searchParams.get('camera');
+            const layoutQuery = searchParams.get('layout');
+
+            if (cameraQuery) {
+                const camera = allCameras.find(c => c.id === cameraQuery);
+                if (camera) {
+                    setSelectedCameras([{ camera, position: 0, aspectMode: 'contain' }]);
+                }
+            }
+
+            if (layoutQuery) {
+                const layout = parseInt(layoutQuery) as ViewLayout;
+                if ([1, 2, 4].includes(layout)) {
+                    setViewLayout(layout);
+                }
+            }
+
+            // Clear URL queries after initial load
+            if (cameraQuery || layoutQuery) {
+                setSearchParams({}, { replace: true });
             }
         }
-    }, [id, allCameras]);
+    }, [allCameras, searchParams, setSearchParams]);
 
     const fetchCameras = async () => {
         try {

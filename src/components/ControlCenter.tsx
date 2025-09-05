@@ -51,18 +51,96 @@ const ControlCenter = () => {
         fetchCameras();
     }, []);
 
-    // Handle initial camera selection from URL parameter
+    // Handle initial camera selection: prioritize URL query over localStorage
     useEffect(() => {
-        const cameraId = searchParams.get('camera');
-        if (cameraId && cameras.length > 0) {
-            const camera = cameras.find(c => c.id === cameraId);
-            if (camera) {
-                setSelectedCameras([{ camera, position: 0, aspectMode: 'contain' }]);
-            }
-        }
-    }, [cameras, searchParams]);
+        if (cameras.length > 0) {
+            const cameraId = searchParams.get('camera');
+            console.log('🎬 ControlCenter Effect - Camera ID from URL:', cameraId);
+            console.log('🎬 ControlCenter Effect - Current layout:', viewLayout);
+            
+            // If camera clicked from HomePage, prioritize it
+            if (cameraId) {
+                const newCamera = cameras.find(c => c.id === cameraId);
+                console.log('🎬 Found camera from URL:', newCamera?.name);
+                
+                if (newCamera) {
+                    // Load existing state from localStorage
+                    let existingCameras: SelectedCamera[] = [];
+                    const savedCameras = localStorage.getItem('cameraCenter_selectedCameras');
+                    if (savedCameras) {
+                        try {
+                            const parsed = JSON.parse(savedCameras);
+                            const validCameras = parsed.filter((item: SelectedCamera) => 
+                                cameras.some(cam => cam.id === item.camera.id)
+                            );
+                            existingCameras = validCameras;
+                            console.log('🎬 Existing cameras from localStorage:', existingCameras.map(c => c.camera.name));
+                        } catch {
+                            console.warn('Invalid saved camera state');
+                        }
+                    }
 
-    const fetchCameras = async () => {
+                    // Check if clicked camera already exists
+                    const existingIndex = existingCameras.findIndex(item => item.camera.id === cameraId);
+                    console.log('🎬 Camera already exists at index:', existingIndex);
+                    
+                    if (existingIndex !== -1) {
+                        // Camera already exists - just use current state (no change needed)
+                        console.log('🎬 Camera exists, using current state');
+                        setSelectedCameras(existingCameras);
+                    } else {
+                        // New camera from home - always add/replace based on layout
+                        if (viewLayout === 1) {
+                            // Layout 1: Replace whatever is there
+                            console.log('🎬 Layout 1: Replacing with new camera');
+                            setSelectedCameras([{ camera: newCamera, position: 0, aspectMode: 'contain' }]);
+                        } else {
+                            // Multi layout: Add to available slot or replace if full
+                            if (existingCameras.length < viewLayout) {
+                                // Has space - add to next available position
+                                const occupiedPositions = existingCameras.map(item => item.position);
+                                const availablePosition = Array.from({length: viewLayout}, (_, i) => i)
+                                    .find(pos => !occupiedPositions.includes(pos)) || 0;
+                                
+                                console.log('🎬 Multi layout: Adding to position', availablePosition);
+                                setSelectedCameras([
+                                    ...existingCameras,
+                                    { camera: newCamera, position: availablePosition, aspectMode: 'contain' }
+                                ]);
+                            } else {
+                                // All slots full - replace first camera (position 0)
+                                const updatedCameras = existingCameras.filter(item => item.position !== 0);
+                                console.log('🎬 Multi layout: Replacing position 0');
+                                setSelectedCameras([
+                                    { camera: newCamera, position: 0, aspectMode: 'contain' },
+                                    ...updatedCameras
+                                ]);
+                            }
+                        }
+                    }
+                    return; // Skip localStorage-only handling
+                }
+            }
+            
+            // No camera from URL - load from localStorage only
+            console.log('🎬 No camera from URL, loading from localStorage');
+            let savedState: SelectedCamera[] = [];
+            const savedCameras = localStorage.getItem('cameraCenter_selectedCameras');
+            if (savedCameras) {
+                try {
+                    const parsed = JSON.parse(savedCameras);
+                    const validCameras = parsed.filter((item: SelectedCamera) => 
+                        cameras.some(cam => cam.id === item.camera.id)
+                    );
+                    savedState = validCameras;
+                    console.log('🎬 Loaded from localStorage:', savedState.map(c => c.camera.name));
+                } catch {
+                    console.warn('Invalid saved camera state');
+                }
+            }
+            setSelectedCameras(savedState);
+        }
+    }, [cameras, searchParams, viewLayout]); const fetchCameras = async () => {
         try {
             setLoading(true);
             const response = await getAllCameras();
@@ -82,13 +160,9 @@ const ControlCenter = () => {
         // Check if camera is already selected - if yes, remove it (toggle)
         const existingCameraIndex = selectedCameras.findIndex(item => item.camera.id === camera.id);
         if (existingCameraIndex !== -1) {
-            // Remove camera and reposition others
+            // Remove camera but keep position fixed (don't reorder)
             setSelectedCameras(prev =>
                 prev.filter(item => item.camera.id !== camera.id)
-                    .map((item, index) => ({
-                        ...item,
-                        position: index
-                    }))
             );
             return;
         }
@@ -97,12 +171,19 @@ const ControlCenter = () => {
             // Single view mode - replace the only slot
             setSelectedCameras([{ camera, position: 0, aspectMode: 'contain' }]);
         } else {
-            // Multi view mode - add to next available slot
-            const nextPosition = selectedCameras.length;
-            if (nextPosition < viewLayout) {
-                setSelectedCameras(prev => [...prev, { camera, position: nextPosition, aspectMode: 'contain' }]);
+            // Multi view mode - find next available slot
+            const occupiedPositions = selectedCameras.map(item => item.position);
+            const availablePosition = Array.from({ length: viewLayout }, (_, i) => i)
+                .find(pos => !occupiedPositions.includes(pos));
+
+            if (availablePosition !== undefined) {
+                setSelectedCameras(prev => [...prev, {
+                    camera,
+                    position: availablePosition,
+                    aspectMode: 'contain'
+                }]);
             }
-            // If all slots are full, do nothing (don't replace)
+            // If no available position, do nothing (don't replace)
         }
     };
 
@@ -125,12 +206,9 @@ const ControlCenter = () => {
     };
 
     const removeCameraFromSlot = (position: number) => {
+        // Remove camera but keep positions fixed (don't reorder other cameras)
         setSelectedCameras(prev =>
             prev.filter(item => item.position !== position)
-                .map(item => ({
-                    ...item,
-                    position: item.position > position ? item.position - 1 : item.position
-                }))
         );
     };
 
@@ -142,6 +220,43 @@ const ControlCenter = () => {
                     : item
             )
         );
+    };
+
+    // Drag & Drop functionality
+    const handleDragStart = (e: React.DragEvent, camera: SelectedCamera) => {
+        e.dataTransfer.setData('application/json', JSON.stringify(camera));
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = (e: React.DragEvent, targetPosition: number) => {
+        e.preventDefault();
+
+        try {
+            const draggedCamera = JSON.parse(e.dataTransfer.getData('application/json')) as SelectedCamera;
+            const targetCamera = selectedCameras.find(item => item.position === targetPosition);
+
+            if (draggedCamera.position === targetPosition) return; // Same position
+
+            setSelectedCameras(prev => {
+                return prev.map(item => {
+                    // Swap positions
+                    if (item.position === draggedCamera.position) {
+                        return { ...item, position: targetPosition };
+                    }
+                    if (targetCamera && item.position === targetPosition) {
+                        return { ...item, position: draggedCamera.position };
+                    }
+                    return item;
+                });
+            });
+        } catch (error) {
+            console.error('Drop error:', error);
+        }
     };
 
     const getGridClass = () => {
@@ -160,7 +275,14 @@ const ControlCenter = () => {
 
         if (selectedCamera) {
             return (
-                <div key={position} className="relative bg-gray-900 rounded-lg overflow-hidden group">
+                <div
+                    key={position}
+                    className="relative bg-gray-900 rounded-lg overflow-hidden group cursor-move"
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, selectedCamera)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, position)}
+                >
                     <VideoPlayer
                         src={selectedCamera.camera.streamUrl}
                         autoPlay
@@ -168,14 +290,18 @@ const ControlCenter = () => {
                         controls={false}
                         className={`w-full h-full ${selectedCamera.aspectMode === 'cover' ? 'object-cover' : 'object-contain'}`}
                     />
-                    <div className="absolute top-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded text-white text-xs">
+                    <div className="absolute top-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded text-white text-xs pointer-events-none">
                         {selectedCamera.camera.name}
                     </div>
                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                            onClick={() => toggleAspectRatio(position)}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                toggleAspectRatio(position);
+                            }}
                             className="bg-blue-600 hover:bg-blue-700 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs"
                             title={`Switch to ${selectedCamera.aspectMode === 'cover' ? 'contain' : 'cover'}`}
+                            draggable={false}
                         >
                             {selectedCamera.aspectMode === 'cover' ? <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" className="bi bi-fullscreen-exit" viewBox="0 0 16 16">
                                 <path d="M5.5 0a.5.5 0 0 1 .5.5v4A1.5 1.5 0 0 1 4.5 6h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5m5 0a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 10 4.5v-4a.5.5 0 0 1 .5-.5M0 10.5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 6 11.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5m10 1a1.5 1.5 0 0 1 1.5-1.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0z" />
@@ -184,8 +310,12 @@ const ControlCenter = () => {
                             </svg>}
                         </button>
                         <button
-                            onClick={() => removeCameraFromSlot(position)}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                removeCameraFromSlot(position);
+                            }}
                             className="bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                            draggable={false}
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" className="bi bi-x" viewBox="0 0 16 16">
                                 <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708" />
@@ -200,16 +330,18 @@ const ControlCenter = () => {
             <div
                 key={position}
                 className="bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-600 cursor-pointer hover:bg-gray-700 hover:border-gray-500 transition-colors"
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, position)}
                 onClick={() => {
                     if (sidebarCollapsed) {
                         setSidebarCollapsed(false);
                     }
                 }}
             >
-                <div className="text-center">
+                <div className="text-center pointer-events-none">
                     <div className="text-4xl mb-2">📹</div>
                     <p className="text-sm">
-                        {sidebarCollapsed ? 'Klik untuk buka sidebar' : 'Pilih kamera dari sidebar'}
+                        {sidebarCollapsed ? 'Klik untuk buka sidebar' : 'Pilih kamera dari sidebar atau drag & drop'}
                     </p>
                 </div>
             </div>

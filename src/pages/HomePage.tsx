@@ -122,7 +122,10 @@ const HomePage = () => {
                                         <CameraCard
                                             key={camera.id}
                                             camera={camera}
-                                            onClick={isDesktopOrTablet ? () => navigate(`/dashboard?camera=${camera.id}`) : undefined}
+                                            onClick={isDesktopOrTablet ? () => {
+                                                // Navigate dengan URL query parameter untuk camera selection
+                                                navigate(`/dashboard?camera=${camera.id}`);
+                                            } : undefined}
                                         />
                                     ))}
                                 </div>

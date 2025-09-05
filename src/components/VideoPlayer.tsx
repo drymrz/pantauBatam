@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { getSecureStreamUrl } from '../utils/streamUtils';
 
@@ -19,6 +19,17 @@ const VideoPlayer = ({
 }: VideoPlayerProps) => {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const hlsRef = useRef<Hls | null>(null);
+    const [showLoader, setShowLoader] = useState(true);
+
+    // Dummy loader 3 detik
+    useEffect(() => {
+        setShowLoader(true);
+        const timer = setTimeout(() => {
+            setShowLoader(false);
+        }, 3000); // 3 detik
+
+        return () => clearTimeout(timer);
+    }, [src]); // Reset loader setiap kali src berubah
 
     // Initialize video player
     useEffect(() => {
@@ -98,17 +109,29 @@ const VideoPlayer = ({
     }, [src, autoPlay]);
 
     return (
-        <video
-            ref={videoRef}
-            className={`${className}`}
-            controls={controls}
-            autoPlay={autoPlay}
-            muted={muted}
-            playsInline
-            webkit-playsinline="true"
-            preload="metadata"
-            crossOrigin="anonymous"
-        />
+        <div className="relative h-full">
+            <video
+                ref={videoRef}
+                className={`${className}`}
+                controls={controls}
+                autoPlay={autoPlay}
+                muted={muted}
+                playsInline
+                webkit-playsinline="true"
+                preload="metadata"
+                crossOrigin="anonymous"
+            />
+
+            {/* Loader Overlay */}
+            {showLoader && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mx-auto mb-3"></div>
+                        <p className="text-white text-sm">Loading Stream...</p>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 
