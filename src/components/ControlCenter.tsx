@@ -57,12 +57,12 @@ const ControlCenter = () => {
             const cameraId = searchParams.get('camera');
             console.log('🎬 ControlCenter Effect - Camera ID from URL:', cameraId);
             console.log('🎬 ControlCenter Effect - Current layout:', viewLayout);
-            
+
             // If camera clicked from HomePage, prioritize it
             if (cameraId) {
                 const newCamera = cameras.find(c => c.id === cameraId);
                 console.log('🎬 Found camera from URL:', newCamera?.name);
-                
+
                 if (newCamera) {
                     // Load existing state from localStorage
                     let existingCameras: SelectedCamera[] = [];
@@ -70,7 +70,7 @@ const ControlCenter = () => {
                     if (savedCameras) {
                         try {
                             const parsed = JSON.parse(savedCameras);
-                            const validCameras = parsed.filter((item: SelectedCamera) => 
+                            const validCameras = parsed.filter((item: SelectedCamera) =>
                                 cameras.some(cam => cam.id === item.camera.id)
                             );
                             existingCameras = validCameras;
@@ -83,7 +83,7 @@ const ControlCenter = () => {
                     // Check if clicked camera already exists
                     const existingIndex = existingCameras.findIndex(item => item.camera.id === cameraId);
                     console.log('🎬 Camera already exists at index:', existingIndex);
-                    
+
                     if (existingIndex !== -1) {
                         // Camera already exists - just use current state (no change needed)
                         console.log('🎬 Camera exists, using current state');
@@ -99,9 +99,9 @@ const ControlCenter = () => {
                             if (existingCameras.length < viewLayout) {
                                 // Has space - add to next available position
                                 const occupiedPositions = existingCameras.map(item => item.position);
-                                const availablePosition = Array.from({length: viewLayout}, (_, i) => i)
+                                const availablePosition = Array.from({ length: viewLayout }, (_, i) => i)
                                     .find(pos => !occupiedPositions.includes(pos)) || 0;
-                                
+
                                 console.log('🎬 Multi layout: Adding to position', availablePosition);
                                 setSelectedCameras([
                                     ...existingCameras,
@@ -121,7 +121,7 @@ const ControlCenter = () => {
                     return; // Skip localStorage-only handling
                 }
             }
-            
+
             // No camera from URL - load from localStorage only
             console.log('🎬 No camera from URL, loading from localStorage');
             let savedState: SelectedCamera[] = [];
@@ -129,7 +129,7 @@ const ControlCenter = () => {
             if (savedCameras) {
                 try {
                     const parsed = JSON.parse(savedCameras);
-                    const validCameras = parsed.filter((item: SelectedCamera) => 
+                    const validCameras = parsed.filter((item: SelectedCamera) =>
                         cameras.some(cam => cam.id === item.camera.id)
                     );
                     savedState = validCameras;

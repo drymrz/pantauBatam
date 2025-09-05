@@ -68,15 +68,32 @@ const VideoPlayer = ({
             }
         } else if (Hls.isSupported()) {
             // Browser lain menggunakan HLS.js
-            console.log('Using HLS.js');
+            console.log('Using HLS.js for:', secureUrl);
+
+            // Enhanced config untuk HTTPS streams
             const hls = new Hls({
+                debug: true, // Enable debug untuk troubleshooting
                 enableWorker: true,
-                lowLatencyMode: true,
-                debug: false,
-                // Tambah konfigurasi untuk mobile
-                maxBufferLength: 10,
-                maxMaxBufferLength: 20,
-                liveSyncDurationCount: 3,
+                lowLatencyMode: false, // Disable untuk stability
+
+                // Buffer settings untuk HTTPS streams
+                maxBufferLength: 30,
+                maxMaxBufferLength: 60,
+                liveSyncDurationCount: 5,
+
+                // Fragment loading settings
+                fragLoadingTimeOut: 20000,
+                manifestLoadingTimeOut: 10000,
+
+                // Retry settings untuk network issues
+                fragLoadingMaxRetry: 6,
+                manifestLoadingMaxRetry: 3,
+
+                // CORS settings
+                xhrSetup: function (xhr, url) {
+                    console.log('🌐 XHR Setup for:', url);
+                    xhr.withCredentials = false; // Disable credentials untuk CORS
+                }
             });
 
             hls.loadSource(secureUrl);
@@ -84,8 +101,9 @@ const VideoPlayer = ({
 
             hlsRef.current = hls;
 
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                console.log('HLS manifest parsed');
+            // Enhanced event monitoring
+            hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+                console.log('✅ HLS manifest parsed:', data);
                 if (autoPlay) {
                     video.play().catch((error) => {
                         console.log('Autoplay failed:', error);
@@ -93,8 +111,43 @@ const VideoPlayer = ({
                 }
             });
 
+            hls.on(Hls.Events.FRAG_LOADED, (_, data) => {
+                console.log('📦 Fragment loaded:', data.frag.url);
+            });
+
+            hls.on(Hls.Events.LEVEL_LOADED, (_, data) => {
+                console.log('📋 Level loaded, segments:', data.details.fragments.length);
+            });
+
             hls.on(Hls.Events.ERROR, (_, data) => {
-                console.log('HLS Error:', data);
+                console.error('❌ HLS Error:', data);
+
+                if (data.fatal) {
+                    console.error('💀 Fatal HLS error:', data.type, data.details);
+                    switch (data.type) {
+                        case Hls.ErrorTypes.NETWORK_ERROR:
+                            console.log('🔄 Attempting to recover network error');
+                            hls.startLoad();
+                            break;
+                        case Hls.ErrorTypes.MEDIA_ERROR:
+                            console.log('🔄 Attempting to recover media error');
+                            hls.recoverMediaError();
+                            break;
+                        default:
+                            console.log('💥 Cannot recover, destroying HLS');
+                            hls.destroy();
+                            break;
+                    }
+                }
+            });
+
+            // Additional monitoring
+            hls.on(Hls.Events.FRAG_BUFFERED, () => {
+                console.log('⚙️ Fragment buffered successfully');
+            });
+
+            hls.on(Hls.Events.BUFFER_APPENDED, () => {
+                console.log('📈 Buffer appended successfully');
             });
         } else {
             console.log('HLS not supported');
