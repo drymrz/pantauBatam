@@ -29,6 +29,7 @@ const ControlCenter = () => {
         const saved = localStorage.getItem('cameraCenter_selectedCameras');
         return saved ? JSON.parse(saved) : [];
     });
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Redirect mobile users to homepage
     useEffect(() => {
@@ -383,6 +384,37 @@ const ControlCenter = () => {
 
                     {!sidebarCollapsed && (
                         <>
+                            {/* Search Input */}
+                            <div className="mb-4 px-1">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Cari kamera..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full bg-gray-700 text-white placeholder-gray-400 px-3 py-2 pl-10 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                                    />
+                                    <svg
+                                        className="absolute left-3 top-2.5 h-4 w-4 text-gray-400"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    {searchQuery && (
+                                        <button
+                                            onClick={() => setSearchQuery('')}
+                                            className="absolute right-2 top-2 p-1 text-gray-400 hover:text-white"
+                                        >
+                                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
                             {/* Camera List - flex grow */}
                             <div className="flex-1 mb-4 min-h-0">
                                 <div className="h-full overflow-y-auto space-y-2">
@@ -393,47 +425,65 @@ const ControlCenter = () => {
                                     ) : error ? (
                                         <div className="text-red-400 text-sm">{error}</div>
                                     ) : (
-                                        cameras.map((camera) => {
-                                            const isActive = selectedCameras.some(item => item.camera.id === camera.id);
-                                            const canSelect = canSelectCamera(camera);
-                                            return (
-                                                <div
-                                                    key={camera.id}
-                                                    onClick={() => canSelect && handleCameraSelect(camera)}
-                                                    className={`flex items-center p-3 rounded-lg transition-colors ${!canSelect
-                                                        ? 'bg-gray-800 opacity-50 cursor-not-allowed'
-                                                        : isActive
-                                                            ? 'bg-blue-600 hover:bg-blue-700 border-2 border-blue-400 cursor-pointer'
-                                                            : 'bg-gray-700 hover:bg-gray-600 cursor-pointer'
-                                                        }`}
-                                                >
-                                                    <div className="w-12 h-8 bg-gray-600 rounded mr-3 flex-shrink-0 overflow-hidden">
-                                                        {camera.thumbnail ? (
-                                                            <img
-                                                                src={camera.thumbnail}
-                                                                alt={camera.name}
-                                                                className="w-full h-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <img
-                                                                src="/thumbnail-placeholder.png"
-                                                                alt={camera.name}
-                                                                className="w-full h-full object-cover"
-                                                            />
+                                        (() => {
+                                            // Filter cameras berdasarkan search query
+                                            const filteredCameras = cameras.filter(camera =>
+                                                camera.name.toLowerCase().includes(searchQuery.toLowerCase())
+                                            );
+
+                                            if (filteredCameras.length === 0 && searchQuery) {
+                                                return (
+                                                    <div className="text-gray-400 text-sm text-center py-8">
+                                                        <svg className="mx-auto h-12 w-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                        </svg>
+                                                        Tidak ada kamera yang ditemukan untuk "{searchQuery}"
+                                                    </div>
+                                                );
+                                            }
+
+                                            return filteredCameras.map((camera) => {
+                                                const isActive = selectedCameras.some(item => item.camera.id === camera.id);
+                                                const canSelect = canSelectCamera(camera);
+                                                return (
+                                                    <div
+                                                        key={camera.id}
+                                                        onClick={() => canSelect && handleCameraSelect(camera)}
+                                                        className={`flex items-center p-3 rounded-lg transition-colors ${!canSelect
+                                                            ? 'bg-gray-800 opacity-50 cursor-not-allowed'
+                                                            : isActive
+                                                                ? 'bg-blue-600 hover:bg-blue-700 border-2 border-blue-400 cursor-pointer'
+                                                                : 'bg-gray-700 hover:bg-gray-600 cursor-pointer'
+                                                            }`}
+                                                    >
+                                                        <div className="w-12 h-8 bg-gray-600 rounded mr-3 flex-shrink-0 overflow-hidden">
+                                                            {camera.thumbnail ? (
+                                                                <img
+                                                                    src={camera.thumbnail}
+                                                                    alt={camera.name}
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                <img
+                                                                    src="/thumbnail-placeholder.png"
+                                                                    alt={camera.name}
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-medium truncate">{camera.name}</p>
+                                                            <p className="text-xs text-gray-400">
+                                                                {!canSelect && !isActive ? 'Slots Full' : isActive ? 'Active' : 'Live'}
+                                                            </p>
+                                                        </div>
+                                                        {isActive && (
+                                                            <div className="w-2 h-2 bg-green-400 rounded-full ml-2"></div>
                                                         )}
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium truncate">{camera.name}</p>
-                                                        <p className="text-xs text-gray-400">
-                                                            {!canSelect && !isActive ? 'Slots Full' : isActive ? 'Active' : 'Live'}
-                                                        </p>
-                                                    </div>
-                                                    {isActive && (
-                                                        <div className="w-2 h-2 bg-green-400 rounded-full ml-2"></div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })
+                                                );
+                                            });
+                                        })()
                                     )}
                                 </div>
                             </div>
