@@ -39,10 +39,90 @@ const CameraDetailPage = () => {
         fetchCameras();
     }, []);
 
-    // Handle initial camera selection: localStorage > URL query > default
+    // Handle initial camera selection: URL query > localStorage > default
     useEffect(() => {
         if (allCameras.length > 0) {
-            // Check if we have saved state first
+            console.log('Processing camera selection with', {
+                allCameras: allCameras.length,
+                searchParams: Object.fromEntries(searchParams),
+                localStorage: !!localStorage.getItem('mobileCamera_selectedCameras')
+            });
+
+            // Check URL query first - this takes priority over localStorage
+            const cameraQuery = searchParams.get('camera') || searchParams.get('id'); // Support both 'camera' and 'id' parameters
+            const layoutQuery = searchParams.get('layout');
+
+            console.log('Checking URL queries:', { cameraQuery, layoutQuery });
+
+            if (cameraQuery) {
+                const camera = allCameras.find(c => c.id === cameraQuery);
+                if (camera) {
+                    console.log('Found camera from URL query (priority):', camera);
+
+                    // Smart camera addition logic based on layout and existing cameras
+                    const currentLayout = viewLayout; // Use current layout
+                    const savedCameras = localStorage.getItem('mobileCamera_selectedCameras');
+                    let existingCameras: SelectedCamera[] = [];
+
+                    // Try to get existing cameras from localStorage
+                    if (savedCameras) {
+                        try {
+                            const parsed = JSON.parse(savedCameras);
+                            existingCameras = parsed.filter((item: SelectedCamera) =>
+                                allCameras.some(cam => cam.id === item.camera.id)
+                            );
+                        } catch {
+                            console.warn('Invalid saved camera state');
+                        }
+                    }
+
+                    // Check if camera is already selected
+                    const isAlreadySelected = existingCameras.some(item => item.camera.id === camera.id);
+
+                    if (currentLayout === 1) {
+                        // Layout 1: Always replace with new camera
+                        console.log('Layout 1: Replacing with new camera');
+                        setSelectedCameras([{ camera, position: 0, aspectMode: 'contain' }]);
+                    } else if (isAlreadySelected) {
+                        // Camera already exists: keep existing cameras
+                        console.log('Camera already selected, keeping existing cameras');
+                        setSelectedCameras(existingCameras);
+                    } else {
+                        // Multi-layout: Add to next available slot or replace if full
+                        const nextPosition = existingCameras.length;
+                        if (nextPosition < currentLayout) {
+                            // Add to next available slot
+                            console.log(`Adding camera to slot ${nextPosition}`);
+                            const newCameras = [...existingCameras, { camera, position: nextPosition, aspectMode: 'contain' as const }];
+                            setSelectedCameras(newCameras);
+                        } else {
+                            // All slots full: replace the first one (position 0)
+                            console.log('All slots full, replacing first camera');
+                            const newCameras = existingCameras.map((item, index) =>
+                                index === 0
+                                    ? { camera, position: 0, aspectMode: 'contain' as const }
+                                    : item
+                            );
+                            setSelectedCameras(newCameras);
+                        }
+                    }
+
+                    if (layoutQuery) {
+                        const layout = parseInt(layoutQuery) as ViewLayout;
+                        if ([1, 2, 4].includes(layout)) {
+                            setViewLayout(layout);
+                        }
+                    }
+
+                    // Clear URL queries after processing
+                    setSearchParams({}, { replace: true });
+                    return;
+                } else {
+                    console.warn('Camera not found for ID:', cameraQuery);
+                }
+            }
+
+            // Fallback to localStorage if no URL query
             const savedCameras = localStorage.getItem('mobileCamera_selectedCameras');
             if (savedCameras) {
                 try {
@@ -52,11 +132,8 @@ const CameraDetailPage = () => {
                         allCameras.some(cam => cam.id === item.camera.id)
                     );
                     if (validCameras.length > 0) {
+                        console.log('Using localStorage cameras (fallback):', validCameras);
                         setSelectedCameras(validCameras);
-                        // Clear URL query since we're using localStorage
-                        if (searchParams.has('camera') || searchParams.has('layout')) {
-                            setSearchParams({}, { replace: true });
-                        }
                         return;
                     }
                 } catch {
@@ -64,30 +141,10 @@ const CameraDetailPage = () => {
                 }
             }
 
-            // Fallback to URL query if no valid localStorage
-            const cameraQuery = searchParams.get('camera');
-            const layoutQuery = searchParams.get('layout');
-
-            if (cameraQuery) {
-                const camera = allCameras.find(c => c.id === cameraQuery);
-                if (camera) {
-                    setSelectedCameras([{ camera, position: 0, aspectMode: 'contain' }]);
-                }
-            }
-
-            if (layoutQuery) {
-                const layout = parseInt(layoutQuery) as ViewLayout;
-                if ([1, 2, 4].includes(layout)) {
-                    setViewLayout(layout);
-                }
-            }
-
-            // Clear URL queries after initial load
-            if (cameraQuery || layoutQuery) {
-                setSearchParams({}, { replace: true });
-            }
+            // No URL query and no valid localStorage - use default (empty)
+            console.log('No URL query or localStorage - using default empty state');
         }
-    }, [allCameras, searchParams, setSearchParams]);
+    }, [allCameras, searchParams, setSearchParams, viewLayout]);
 
     const fetchCameras = async () => {
         try {
@@ -180,7 +237,7 @@ const CameraDetailPage = () => {
 
         if (selectedCamera) {
             return (
-                <div key={position} className="relative bg-gray-900 rounded-lg overflow-hidden group h-full min-h-0">
+                <div key={position} className="relative bg-gray-900 rounded-lg overflow-hidden group flex flex-col min-h-0">
                     <VideoPlayer
                         src={selectedCamera.camera.streamUrl}
                         autoPlay
@@ -228,48 +285,48 @@ const CameraDetailPage = () => {
     };
 
     return (
-        <div className={`bg-gray-900 text-white ${isFullscreen ? 'fixed inset-0 z-50' : 'min-h-screen flex flex-col'}`}>
-            <div className={`container mx-auto ${isFullscreen ? 'h-full' : 'px-4 py-8 flex-1 flex flex-col'}`}>
+        <div className={`bg-gray-900 text-white ${isFullscreen ? 'fixed inset-0 z-50' : 'flex flex-col'}`}>
+            <div className={`container mx-auto ${isFullscreen ? 'h-full' : 'px-4 pt-3 pb-6 flex flex-col min-h-[100dvh]'}`}>
                 {!isFullscreen && (
-                    <header className="mb-6">
-                        <Link to="/" className="text-blue-400 hover:text-blue-300 flex items-center mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-                            </svg>
-                            Kembali ke Beranda
-                        </Link>
-                        <h1 className="text-3xl font-bold">Camera Control Center</h1>
+                    <header className="mb-4">
+                        <div className="flex items-center justify-between mb-6">
+                            <Link to="/" className="text-blue-400 hover:text-blue-300 flex items-center w-[28px]">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                                </svg>
+                                {/* Kembali ke Beranda */}
+                            </Link>
+                            <h1 className="text-xl font-bold">Control Center</h1>
+                            <div className="w-[28px]"></div>
+                        </div>
+
+                        <div className="md:hidden">
+                            <div className="flex justify-between items-center mb-3">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-300">Layout</h3>
+                                </div>
+                                <div className="flex gap-2">
+                                    {[1, 2, 4].map((layout) => (
+                                        <button
+                                            key={layout}
+                                            onClick={() => handleLayoutChange(layout as ViewLayout)}
+                                            className={`w-10 h-10 rounded-lg border-2 transition-colors font-bold text-sm ${viewLayout === layout
+                                                ? 'border-blue-500 bg-blue-600 text-white'
+                                                : 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-gray-300'
+                                                }`}
+                                        >
+                                            {layout}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </header>
                 )}
 
-                {/* Layout Options - 10% space */}
-                {!isFullscreen && (
-                    <div className="mb-4 md:hidden">
-                        <div className="flex justify-between items-center mb-3">
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-300">Layout</h3>
-                            </div>
-                            <div className="flex gap-2">
-                                {[1, 2, 4].map((layout) => (
-                                    <button
-                                        key={layout}
-                                        onClick={() => handleLayoutChange(layout as ViewLayout)}
-                                        className={`w-10 h-10 rounded-lg border-2 transition-colors font-bold text-sm ${viewLayout === layout
-                                            ? 'border-blue-500 bg-blue-600 text-white'
-                                            : 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-gray-300'
-                                            }`}
-                                    >
-                                        {layout}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
                 {/* Video Grid - 70% space */}
-                <div className={`${isFullscreen ? 'h-full' : 'flex flex-1 mb-4'} relative`}>
-                    <div className={`grid ${getGridClass()} gap-2 h-full w-full`}>
+                <div className={`${isFullscreen ? 'h-full' : 'flex mb-4 flex-1 min-h-0'} relative`}>
+                    <div className={`grid flex-1 ${getGridClass()} gap-2 w-full min-h-0`}>
                         {Array.from({ length: viewLayout }, (_, index) => renderCameraSlot(index))}
                     </div>
 

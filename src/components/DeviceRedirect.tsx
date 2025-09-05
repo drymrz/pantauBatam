@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import ControlCenter from '../components/ControlCenter';
 import CameraDetailPage from '../pages/CameraDetailPage';
@@ -28,9 +28,13 @@ const useDeviceDetection = () => {
 // Mobile redirect: /dashboard → /camera on mobile (dengan responsive detection)
 export const MobileRedirect = () => {
     const isMobileDevice = useDeviceDetection();
+    const location = useLocation();
 
     if (isMobileDevice) {
-        return <Navigate to="/camera" replace />;
+        // Preserve query string when redirecting
+        const to = `/camera${location.search}`;
+        console.log('MobileRedirect: Redirecting from', location.pathname + location.search, 'to', to);
+        return <Navigate to={to} replace />;
     }
     return <ControlCenter />;
 };
@@ -38,9 +42,13 @@ export const MobileRedirect = () => {
 // Desktop redirect: /camera → /dashboard on desktop (dengan responsive detection) 
 export const DesktopRedirect = () => {
     const isMobileDevice = useDeviceDetection();
+    const location = useLocation();
 
     if (!isMobileDevice) {
-        return <Navigate to="/dashboard" replace />;
+        // Preserve query string when redirecting
+        const to = `/dashboard${location.search}`;
+        console.log('DesktopRedirect: Redirecting from', location.pathname + location.search, 'to', to);
+        return <Navigate to={to} replace />;
     }
     return <CameraDetailPage />;
 };
