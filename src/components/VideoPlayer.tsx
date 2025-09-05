@@ -26,7 +26,7 @@ const VideoPlayer = ({
         setShowLoader(true);
         const timer = setTimeout(() => {
             setShowLoader(false);
-        }, 3000); // 3 detik
+        }, 5000); // 3 detik
 
         return () => clearTimeout(timer);
     }, [src]); // Reset loader setiap kali src berubah
