@@ -1,7 +1,0 @@
-{
-  "functions": {
-    "api/stream/[camera].js": {
-      "runtime": "nodejs18.x"
-    }
-  }
-}
