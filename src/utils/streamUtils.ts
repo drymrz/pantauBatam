@@ -1,28 +1,26 @@
-// Utility untuk mengatasi mixed content issues
+// Utility untuk mengatasi mixed content issues dengan Vercel Edge Functions
 export const getSecureStreamUrl = (originalUrl: string): string => {
     // Jika sudah HTTPS, return as is
     if (originalUrl.startsWith('https://')) {
         return originalUrl;
     }
 
-    // Jika HTTP dan sedang di production (HTTPS), gunakan proxy
+    // Jika HTTP dan sedang di production (HTTPS), gunakan Vercel proxy
     if (originalUrl.startsWith('http://') && window.location.protocol === 'https:') {
-        // Opsi 1: Coba ganti ke HTTPS
-        const httpsUrl = originalUrl.replace('http://', 'https://');
-        return httpsUrl;
+        // Extract camera name dari URL
+        const urlParts = originalUrl.split('/');
+        const fileName = urlParts[urlParts.length - 1]; // e.g., "SERAYA_ATAS_1.m3u8"
+        const cameraName = fileName.replace('.m3u8', ''); // e.g., "SERAYA_ATAS_1"
 
-        // Opsi 2: Jika HTTPS tidak work, bisa gunakan proxy service
-        // const encodedUrl = encodeURIComponent(originalUrl);
-        // return `https://cors-anywhere.herokuapp.com/${originalUrl}`;
-        // atau
-        // return `https://api.allorigins.win/raw?url=${encodedUrl}`;
+        // Gunakan Vercel Edge Function proxy
+        const proxyUrl = `/api/stream/${cameraName}`;
+        console.log(`Using Vercel proxy: ${proxyUrl} for original: ${originalUrl}`);
+        return proxyUrl;
     }
 
-    // Default return original URL
+    // Default return original URL (untuk development)
     return originalUrl;
-};
-
-// Utility untuk check apakah URL accessible
+};// Utility untuk check apakah URL accessible
 export const checkStreamAvailability = async (url: string): Promise<boolean> => {
     try {
         await fetch(url, {
