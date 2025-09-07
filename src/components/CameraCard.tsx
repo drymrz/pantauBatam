@@ -23,7 +23,7 @@ const CameraCard = ({ camera, onClick, isSelected }: CameraCardProps) => {
           <img
             src={camera.thumbnail || '/btm.jpg'}
             alt={camera.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover aspect-video"
             loading="lazy"
           />
           <div className="absolute top-0 right-0 p-2">
@@ -51,7 +51,7 @@ const CameraCard = ({ camera, onClick, isSelected }: CameraCardProps) => {
         <img
           src={camera.thumbnail || '/btm.jpg'}
           alt={camera.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover aspect-video"
           loading="lazy"
         />
         <div className="absolute top-0 right-0 p-2">
