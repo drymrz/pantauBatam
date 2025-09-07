@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getAllCameras } from '../services/cameraService';
 import { useScreenSize, SCREEN_SIZE } from '../hooks/useScreenSize';
@@ -30,6 +30,9 @@ const ControlCenter = () => {
         return saved ? JSON.parse(saved) : [];
     });
     const [searchQuery, setSearchQuery] = useState('');
+    const [dragHoverPosition, setDragHoverPosition] = useState<number | null>(null);
+    const [currentDragSource, setCurrentDragSource] = useState<'sidebar' | 'preview' | null>(null);
+    const sidebarRef = useRef<HTMLDivElement>(null);
 
     // Redirect mobile users to homepage
     useEffect(() => {
@@ -148,7 +151,60 @@ const ControlCenter = () => {
             }
             setSelectedCameras(savedState);
         }
-    }, [cameras, searchParams, viewLayout]); const fetchCameras = async () => {
+    }, [cameras, searchParams, viewLayout]);
+
+    // Keyboard navigation for layout 1
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Only handle keyboard navigation in layout 1 and when not focused on input
+            if (viewLayout !== 1 || !cameras.length || document.activeElement?.tagName === 'INPUT') {
+                return;
+            }
+
+            const isArrowKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key);
+            if (!isArrowKey) return;
+
+            e.preventDefault(); // Prevent page scrolling
+
+            const currentCamera = selectedCameras[0]?.camera;
+            const currentIndex = currentCamera ? cameras.findIndex(c => c.id === currentCamera.id) : -1;
+
+            let nextIndex: number;
+
+            if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                // Previous camera
+                nextIndex = currentIndex <= 0 ? cameras.length - 1 : currentIndex - 1;
+            } else {
+                // Next camera (ArrowDown or ArrowRight)
+                nextIndex = currentIndex >= cameras.length - 1 ? 0 : currentIndex + 1;
+            }
+
+            const nextCamera = cameras[nextIndex];
+            if (nextCamera) {
+                setSelectedCameras([{ camera: nextCamera, position: 0, aspectMode: 'contain' }]);
+
+                // Auto-scroll sidebar to show the selected camera
+                if (sidebarRef.current) {
+                    const cameraElements = sidebarRef.current.querySelectorAll('[data-camera-id]');
+                    const targetElement = Array.from(cameraElements).find(el =>
+                        el.getAttribute('data-camera-id') === nextCamera.id
+                    ) as HTMLElement;
+
+                    if (targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [viewLayout, cameras, selectedCameras]);
+
+    const fetchCameras = async () => {
         try {
             setLoading(true);
             const response = await getAllCameras();
@@ -240,42 +296,117 @@ const ControlCenter = () => {
 
     // Drag & Drop functionality
     const handleDragStart = (e: React.DragEvent, camera: SelectedCamera) => {
-        e.dataTransfer.setData('application/json', JSON.stringify(camera));
+        setCurrentDragSource('preview');
+        e.dataTransfer.setData('application/json', JSON.stringify({
+            ...camera,
+            source: 'preview'
+        }));
         e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleSidebarDragStart = (e: React.DragEvent, camera: Camera) => {
+        console.log('🚀 Starting sidebar drag for:', camera.name);
+        setCurrentDragSource('sidebar');
+        const dragData = {
+            camera,
+            source: 'sidebar'
+        };
+        e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+        e.dataTransfer.setData('text/plain', ''); // Add fallback
+        e.dataTransfer.effectAllowed = 'all';
+        console.log('🚀 Drag data set:', dragData);
     };
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
+        e.stopPropagation();
+        console.log('🔄 Drag over triggered, source:', currentDragSource);
+
+        // Set appropriate dropEffect based on drag source
+        if (currentDragSource === 'sidebar') {
+            e.dataTransfer.dropEffect = 'copy';
+        } else {
+            e.dataTransfer.dropEffect = 'move';
+        }
+        return false;
+    };
+
+    const handleDragEnd = () => {
+        console.log('🏁 Drag ended, clearing source');
+        setCurrentDragSource(null);
+        setDragHoverPosition(null);
+    }; const handleDragEnter = (e: React.DragEvent, position: number) => {
+        e.preventDefault();
+        console.log('🎯 Drag enter position:', position);
+        setDragHoverPosition(position);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        // Only clear if we're actually leaving the drop zone
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setDragHoverPosition(null);
+        }
     };
 
     const handleDrop = (e: React.DragEvent, targetPosition: number) => {
         e.preventDefault();
+        setDragHoverPosition(null);
 
         try {
-            const draggedCamera = JSON.parse(e.dataTransfer.getData('application/json')) as SelectedCamera;
-            const targetCamera = selectedCameras.find(item => item.position === targetPosition);
+            const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
+            console.log('🎯 Drop Data:', dragData);
+            console.log('🎯 Target Position:', targetPosition);
 
-            if (draggedCamera.position === targetPosition) return; // Same position
+            if (dragData.source === 'sidebar') {
+                // Dropping from sidebar - replace or add camera
+                const newCamera = dragData.camera as Camera;
+                console.log('📂 Dropping from sidebar:', newCamera.name);
 
-            setSelectedCameras(prev => {
-                return prev.map(item => {
-                    // Swap positions
-                    if (item.position === draggedCamera.position) {
-                        return { ...item, position: targetPosition };
-                    }
-                    if (targetCamera && item.position === targetPosition) {
-                        return { ...item, position: draggedCamera.position };
-                    }
-                    return item;
+                setSelectedCameras(prev => {
+                    console.log('📂 Previous cameras:', prev.map(c => `${c.camera.name} at pos ${c.position}`));
+
+                    // Remove camera if it exists elsewhere
+                    const filteredCameras = prev.filter(item => item.camera.id !== newCamera.id);
+
+                    // Remove camera at target position if exists
+                    const withoutTarget = filteredCameras.filter(item => item.position !== targetPosition);
+
+                    // Add new camera at target position
+                    const newState = [...withoutTarget, {
+                        camera: newCamera,
+                        position: targetPosition,
+                        aspectMode: 'contain' as const
+                    }];
+
+                    console.log('📂 New state:', newState.map(c => `${c.camera.name} at pos ${c.position}`));
+                    return newState;
                 });
-            });
-        } catch (error) {
-            console.error('Drop error:', error);
-        }
-    };
+            } else {
+                // Dropping from preview - swap positions (existing logic)
+                const draggedCamera = dragData as SelectedCamera;
+                const targetCamera = selectedCameras.find(item => item.position === targetPosition);
+                console.log('🔄 Dropping from preview - swap logic');
 
-    const getGridClass = () => {
+                if (draggedCamera.position === targetPosition) return; // Same position
+
+                setSelectedCameras(prev => {
+                    return prev.map(item => {
+                        // Swap positions
+                        if (item.position === draggedCamera.position) {
+                            return { ...item, position: targetPosition };
+                        }
+                        if (targetCamera && item.position === targetPosition) {
+                            return { ...item, position: draggedCamera.position };
+                        }
+                        return item;
+                    });
+                });
+            }
+        } catch (error) {
+            console.error('❌ Drop error:', error);
+        }
+    }; const getGridClass = () => {
         switch (viewLayout) {
             case 1: return 'grid-cols-1 grid-rows-1';
             case 2: return 'grid-cols-2 grid-rows-1';
@@ -288,15 +419,20 @@ const ControlCenter = () => {
 
     const renderCameraSlot = (position: number) => {
         const selectedCamera = selectedCameras.find(item => item.position === position);
+        const isHovering = dragHoverPosition === position;
 
         if (selectedCamera) {
             return (
                 <div
                     key={position}
-                    className="relative bg-[#24252d] rounded-lg overflow-hidden group cursor-move"
+                    className={`relative bg-[#24252d] rounded-lg overflow-hidden group cursor-move transition-all duration-200 ${isHovering ? 'ring-2 ring-blue-400 bg-blue-950/30' : ''
+                        }`}
                     draggable
                     onDragStart={(e) => handleDragStart(e, selectedCamera)}
+                    onDragEnd={handleDragEnd}
                     onDragOver={handleDragOver}
+                    onDragEnter={(e) => handleDragEnter(e, position)}
+                    onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, position)}
                 >
                     <VideoPlayer
@@ -304,7 +440,7 @@ const ControlCenter = () => {
                         autoPlay
                         muted
                         controls={false}
-                        className={`w-full h-full ${selectedCamera.aspectMode === 'cover' ? 'object-cover' : 'object-contain'}`}
+                        className={`w-full h-full pointer-events-none ${selectedCamera.aspectMode === 'cover' ? 'object-cover' : 'object-contain'}`}
                     />
                     <div className="absolute top-2 left-2 bg-black/30 backdrop-blur-md px-2 py-1 rounded text-white text-xs pointer-events-none">
                         {selectedCamera.camera.name}
@@ -345,8 +481,13 @@ const ControlCenter = () => {
         return (
             <div
                 key={position}
-                className="bg-[#24252d] rounded-lg flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-600 cursor-pointer hover:bg-gray-700 hover:border-gray-500 transition-colors"
+                className={`bg-[#24252d] rounded-lg flex items-center justify-center text-gray-400 border-2 border-dashed cursor-pointer transition-all duration-200 ${isHovering
+                    ? 'border-blue-400 bg-blue-950/30 text-blue-300'
+                    : 'border-gray-600 hover:bg-gray-700 hover:border-gray-500'
+                    }`}
                 onDragOver={handleDragOver}
+                onDragEnter={(e) => handleDragEnter(e, position)}
+                onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, position)}
                 onClick={() => {
                     if (sidebarCollapsed) {
@@ -417,7 +558,7 @@ const ControlCenter = () => {
 
                             {/* Camera List - flex grow */}
                             <div className="flex-1 mb-4 min-h-0">
-                                <div className="h-full overflow-y-auto space-y-2 scrollbar-desktop">
+                                <div ref={sidebarRef} className="h-full overflow-y-auto space-y-2 scrollbar-desktop">
                                     {loading ? (
                                         <div className="flex justify-center py-8">
                                             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
@@ -448,13 +589,17 @@ const ControlCenter = () => {
                                                 return (
                                                     <div
                                                         key={camera.id}
+                                                        data-camera-id={camera.id}
                                                         onClick={() => canSelect && handleCameraSelect(camera)}
+                                                        draggable={canSelect}
+                                                        onDragStart={(e) => canSelect && handleSidebarDragStart(e, camera)}
+                                                        onDragEnd={handleDragEnd}
                                                         className={`flex items-center p-3 rounded-lg transition-colors ${!canSelect
                                                             ? 'bg-[#24252d] opacity-50 cursor-not-allowed'
                                                             : isActive
                                                                 ? 'bg-blue-600 hover:bg-blue-700 border-2 border-blue-400 cursor-pointer'
                                                                 : 'bg-[#24252d] hover:bg-[#3a3a3a] cursor-pointer'
-                                                            }`}
+                                                            } ${canSelect ? 'cursor-grab active:cursor-grabbing' : ''}`}
                                                     >
                                                         <div className="w-12 h-8 bg-gray-600 rounded mr-3 flex-shrink-0 overflow-hidden">
                                                             {camera.thumbnail ? (
