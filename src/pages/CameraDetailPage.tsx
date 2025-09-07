@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import VideoPlayer from '../components/VideoPlayer';
 import { getAllCameras } from '../services/cameraService';
@@ -16,6 +16,10 @@ const CameraDetailPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [allCameras, setAllCameras] = useState<Camera[]>([]);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [fullscreenCameraId, setFullscreenCameraId] = useState<string | null>(null);
+    const [showRotateGuide, setShowRotateGuide] = useState(false);
+    const carouselRef = useRef<HTMLDivElement | null>(null);
+    const hasAutoScrolled = useRef(false);
     const [viewLayout, setViewLayout] = useState<ViewLayout>(() => {
         const saved = localStorage.getItem('mobileCamera_layout');
         return saved ? (parseInt(saved) as ViewLayout) : 1;
@@ -38,6 +42,43 @@ const CameraDetailPage = () => {
     useEffect(() => {
         fetchCameras();
     }, []);
+
+    // Hide rotate guide when user rotates to landscape
+    useEffect(() => {
+        const handleOrientationChange = () => {
+            const isPortrait = window.innerHeight > window.innerWidth;
+            if (!isPortrait && showRotateGuide) {
+                setShowRotateGuide(false);
+            }
+        };
+
+        window.addEventListener('orientationchange', handleOrientationChange);
+        window.addEventListener('resize', handleOrientationChange);
+
+        return () => {
+            window.removeEventListener('orientationchange', handleOrientationChange);
+            window.removeEventListener('resize', handleOrientationChange);
+        };
+    }, [showRotateGuide]);
+
+    // Auto-scroll carousel only on mount/first active
+    useEffect(() => {
+        if (!hasAutoScrolled.current && selectedCameras.length > 0 && allCameras.length > 0) {
+            // Cari kamera aktif pertama
+            const firstActive = allCameras.findIndex(cam => selectedCameras.some(item => item.camera.id === cam.id));
+            if (firstActive !== -1 && carouselRef.current) {
+                const child = carouselRef.current.children[firstActive] as HTMLElement | undefined;
+                if (child) {
+                    child.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    hasAutoScrolled.current = true;
+                }
+            }
+        }
+        // Reset flag jika semua kamera nonaktif
+        if (selectedCameras.length === 0) {
+            hasAutoScrolled.current = false;
+        }
+    }, [selectedCameras, allCameras]);
 
     // Handle initial camera selection: URL query > localStorage > default
     useEffect(() => {
@@ -213,14 +254,27 @@ const CameraDetailPage = () => {
         );
     };
 
-    const toggleAspectRatio = (position: number) => {
-        setSelectedCameras(prev =>
-            prev.map(item =>
-                item.position === position
-                    ? { ...item, aspectMode: item.aspectMode === 'cover' ? 'contain' : 'cover' }
-                    : item
-            )
-        );
+    const toggleCameraFullscreen = async (cameraId: string) => {
+        const newFullscreen = !isFullscreen || fullscreenCameraId !== cameraId;
+        setIsFullscreen(newFullscreen);
+        setFullscreenCameraId(newFullscreen ? cameraId : null);
+
+        if (newFullscreen) {
+            // Entering fullscreen
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isPortrait = window.innerHeight > window.innerWidth;
+
+            if (isMobile && isPortrait) {
+                setShowRotateGuide(true);
+            }
+        } else {
+            // Exiting fullscreen
+            setShowRotateGuide(false);
+        }
+    };
+
+    const handleDoubleClick = (cameraId: string) => {
+        toggleCameraFullscreen(cameraId);
     };
 
     const getGridClass = () => {
@@ -237,31 +291,38 @@ const CameraDetailPage = () => {
 
         if (selectedCamera) {
             return (
-                <div key={position} className="relative bg-gray-900 rounded-lg overflow-hidden group flex flex-col min-h-0">
-                    <VideoPlayer
-                        src={selectedCamera.camera.streamUrl}
-                        autoPlay
-                        muted
-                        controls={false}
-                        className={`w-full h-full ${selectedCamera.aspectMode === 'cover' ? 'object-cover' : 'object-contain'}`}
-                    />
-                    <div className="absolute top-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded text-white text-xs">
+                <div key={position} className={`relative bg-[#24252d] rounded-lg overflow-hidden group flex flex-col min-h-0 ${viewLayout === 2 ? 'max-h-[25dvh]' : ''}`}>
+                    <div
+                        onDoubleClick={() => handleDoubleClick(selectedCamera.camera.id)}
+                        className="w-full h-full cursor-pointer"
+                    >
+                        <VideoPlayer
+                            src={selectedCamera.camera.streamUrl}
+                            autoPlay
+                            muted
+                            controls={false}
+                            className={`w-full h-full ${selectedCamera.aspectMode === 'cover' ? 'object-cover' : 'object-contain'}`}
+                        />
+                    </div>
+                    <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md px-2 py-1 rounded text-white text-xs">
                         {selectedCamera.camera.name}
                     </div>
                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                            onClick={() => toggleAspectRatio(position)}
+                            onClick={() => toggleCameraFullscreen(selectedCamera.camera.id)}
                             className="bg-blue-600 hover:bg-blue-700 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs"
-                            title={`Switch to ${selectedCamera.aspectMode === 'cover' ? 'contain' : 'cover'}`}
+                            title="Fullscreen"
                         >
-                            {selectedCamera.aspectMode === 'cover' ? '⤡' : '⤢'}
+                            ⛶
                         </button>
-                        <button
-                            onClick={() => removeCameraFromSlot(position)}
-                            className="bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs"
-                        >
-                            ×
-                        </button>
+                        {!isFullscreen && (
+                            <button
+                                onClick={() => removeCameraFromSlot(position)}
+                                className="bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                            >
+                                ×
+                            </button>
+                        )}
                     </div>
                 </div>
             );
@@ -280,24 +341,19 @@ const CameraDetailPage = () => {
         );
     };
 
-    const toggleFullscreen = () => {
-        setIsFullscreen(!isFullscreen);
-    };
-
     return (
-        <div className={`bg-gray-900 text-white ${isFullscreen ? 'fixed inset-0 z-50' : 'flex flex-col'}`}>
-            <div className={`container mx-auto ${isFullscreen ? 'h-full' : 'px-4 pt-3 pb-6 flex flex-col min-h-[100dvh]'}`}>
+        <div className={`bg-[#0e0e17] text-white ${isFullscreen ? 'fixed inset-0 z-50' : 'flex flex-col'}`}>
+            <div className={`${isFullscreen ? 'h-full' : 'container mx-auto px-4 pt-3.5 pb-6 flex flex-col min-h-[100dvh]'}`}>
                 {!isFullscreen && (
                     <header className="mb-4">
                         <div className="flex items-center justify-between mb-6">
-                            <Link to="/" className="text-blue-400 hover:text-blue-300 flex items-center w-[28px]">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                            <Link to="/" className="bg-[#24252d] p-3 rounded-full">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                     <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
                                 </svg>
-                                {/* Kembali ke Beranda */}
                             </Link>
                             <h1 className="text-xl font-bold">Control Center</h1>
-                            <div className="w-[28px]"></div>
+                            <div className="w-[2rem]"></div>
                         </div>
 
                         <div className="md:hidden">
@@ -310,9 +366,9 @@ const CameraDetailPage = () => {
                                         <button
                                             key={layout}
                                             onClick={() => handleLayoutChange(layout as ViewLayout)}
-                                            className={`w-10 h-10 rounded-lg border-2 transition-colors font-bold text-sm ${viewLayout === layout
-                                                ? 'border-blue-500 bg-blue-600 text-white'
-                                                : 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-gray-300'
+                                            className={`w-10 h-10 rounded-xl border-2 transition-colors font-bold text-sm ${viewLayout === layout
+                                                ? 'bg-gray-900 text-white border-gray-700'
+                                                : 'border-gray-600 bg-gray-700/50 hover:bg-gray-600 text-gray-300'
                                                 }`}
                                         >
                                             {layout}
@@ -326,32 +382,77 @@ const CameraDetailPage = () => {
 
                 {/* Video Grid - 70% space */}
                 <div className={`${isFullscreen ? 'h-full' : 'flex mb-4 flex-1 min-h-0'} relative`}>
-                    <div className={`grid flex-1 ${getGridClass()} gap-2 w-full min-h-0`}>
-                        {Array.from({ length: viewLayout }, (_, index) => renderCameraSlot(index))}
-                    </div>
-
-                    {!isFullscreen && (
-                        <button
-                            onClick={toggleFullscreen}
-                            className="absolute bottom-4 right-4 bg-black bg-opacity-60 hover:bg-opacity-80 p-2 rounded-full transition-colors"
-                            aria-label="Enter Fullscreen"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
-                            </svg>
-                        </button>
+                    {isFullscreen && fullscreenCameraId ? (
+                        // Fullscreen mode: show only selected camera
+                        <div className="w-full h-full relative">
+                            {(() => {
+                                const fullscreenCamera = selectedCameras.find(item => item.camera.id === fullscreenCameraId);
+                                if (fullscreenCamera) {
+                                    return (
+                                        <div
+                                            onDoubleClick={() => handleDoubleClick(fullscreenCamera.camera.id)}
+                                            className="w-full h-full cursor-pointer relative bg-[#24252d] rounded-lg overflow-hidden"
+                                        >
+                                            <VideoPlayer
+                                                src={fullscreenCamera.camera.streamUrl}
+                                                autoPlay
+                                                muted
+                                                controls={false}
+                                                className={`w-full h-full ${fullscreenCamera.aspectMode === 'cover' ? 'object-cover' : 'object-contain'}`}
+                                            />
+                                            <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md px-2 py-1 rounded text-white text-xs">
+                                                {fullscreenCamera.camera.name}
+                                            </div>
+                                            {/* Exit Fullscreen Button */}
+                                            <button
+                                                onClick={() => toggleCameraFullscreen(fullscreenCamera.camera.id)}
+                                                className="absolute top-4 right-4 bg-black bg-opacity-60 hover:bg-opacity-80 p-2 rounded-full transition-colors z-20"
+                                                aria-label="Exit Fullscreen"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
+                        </div>
+                    ) : (
+                        // Grid mode: show all cameras
+                        <div className={`grid flex-1 ${getGridClass()} gap-2 w-full min-h-0`}>
+                            {Array.from({ length: viewLayout }, (_, index) => renderCameraSlot(index))}
+                        </div>
                     )}
 
-                    {isFullscreen && (
-                        <button
-                            onClick={toggleFullscreen}
-                            className="absolute bottom-4 right-4 bg-black bg-opacity-60 hover:bg-opacity-80 p-2 rounded-full transition-colors"
-                            aria-label="Exit Fullscreen"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                    {/* Rotation Guide Overlay */}
+                    {isFullscreen && showRotateGuide && (
+                        <div className="absolute inset-0 bg-black bg-opacity-90 flex items-center justify-center z-10">
+                            <div className="text-center text-white px-8">
+                                <div className="mb-6">
+                                    <div className="flex items-center justify-center space-x-4 mb-4">
+                                        <div className="w-16 h-10 border-2 border-blue-400 rounded-lg flex items-center justify-center">
+                                            <span className="text-blue-400 text-xs">📱</span>
+                                        </div>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        <div className="w-10 h-16 border-2 border-blue-400 rounded-lg flex items-center justify-center">
+                                            <span className="text-blue-400 text-xs">📱</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <h3 className="text-2xl font-semibold mb-4">Rotate Your Phone</h3>
+                                <p className="text-gray-300 text-lg mb-6">
+                                    Turn your device to landscape mode<br />
+                                    for the best viewing experience
+                                </p>
+                                <div className="text-blue-400 text-sm">
+                                    🔄 Rotate to continue watching
+                                </div>
+                            </div>
+                        </div>
                     )}
                 </div>
 
@@ -370,7 +471,7 @@ const CameraDetailPage = () => {
                         </div>
 
                         {allCameras.length > 0 ? (
-                            <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory">
+                            <div ref={carouselRef} className="flex gap-3 overflow-x-auto py-3 scrollbar-hide snap-x snap-mandatory">
                                 {allCameras.map((cam) => {
                                     const isActive = selectedCameras.some(item => item.camera.id === cam.id);
                                     const canSelect = canSelectCamera(cam);
@@ -383,7 +484,7 @@ const CameraDetailPage = () => {
                                                 ? 'opacity-50 cursor-not-allowed'
                                                 : isActive
                                                     ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 scale-105'
-                                                    : 'hover:ring-2 hover:ring-gray-500 hover:ring-offset-2 hover:ring-offset-gray-900 hover:scale-105'
+                                                    : 'hover:ring-2 hover:ring-gray-500 hover:ring-offset-2 ring-offset-gray-900 hover:scale-105'
                                                 }`}
                                         >
                                             <div className="relative w-full h-full bg-gray-800">

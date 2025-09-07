@@ -49,13 +49,10 @@ const VideoPlayer = ({
 
         // Get secure URL untuk production
         const secureUrl = getSecureStreamUrl(src);
-        console.log('Original URL:', src);
-        console.log('Secure URL:', secureUrl);
 
         // Cek apakah browser mendukung HLS secara native (seperti Safari iOS)
         if (video.canPlayType('application/vnd.apple.mpegurl')) {
             // Safari iOS mendukung HLS secara native
-            console.log('Using native HLS support');
             video.src = secureUrl;
 
             if (autoPlay) {
@@ -68,7 +65,6 @@ const VideoPlayer = ({
             }
         } else if (Hls.isSupported()) {
             // Browser lain menggunakan HLS.js
-            console.log('Using HLS.js for:', secureUrl);
 
             // Enhanced config dengan conditional settings berdasarkan URL type
             const isHttpsStream = secureUrl.startsWith('https://') && !secureUrl.includes('/api/stream/');
@@ -93,10 +89,7 @@ const VideoPlayer = ({
                 fragLoadingRetryDelay: isHttpsStream ? 300 : 1000,
 
                 // CORS settings
-                xhrSetup: function (xhr, url) {
-                    if (!isHttpsStream) {
-                        console.log('🌐 XHR Setup for:', url);
-                    }
+                xhrSetup: function (xhr) {
                     xhr.withCredentials = false; // Disable credentials untuk CORS
                     if (isHttpsStream) {
                         xhr.timeout = 8000; // Shorter timeout untuk HTTPS
@@ -110,8 +103,7 @@ const VideoPlayer = ({
             hlsRef.current = hls;
 
             // Enhanced event monitoring
-            hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-                console.log('✅ HLS manifest parsed:', data);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 if (autoPlay) {
                     video.play().catch((error) => {
                         console.log('Autoplay failed:', error);
@@ -119,75 +111,41 @@ const VideoPlayer = ({
                 }
             });
 
-            hls.on(Hls.Events.FRAG_LOADED, (_, data) => {
-                console.log('📦 Fragment loaded:', data.frag.url);
-            });
-
-            hls.on(Hls.Events.LEVEL_LOADED, (_, data) => {
-                console.log('📋 Level loaded, segments:', data.details.fragments.length);
-            });
-
             hls.on(Hls.Events.ERROR, (_, data) => {
-                // Log dengan conditional detail berdasarkan stream type
-                if (isHttpsStream) {
-                    console.log('❌ HTTPS Stream Error:', data.type, data.details);
-                } else {
-                    console.error('❌ HLS Error:', data);
-                }
-
                 // Handle SEI payload errors khusus untuk HTTPS streams
                 if (isHttpsStream && data.details === 'fragParsingError' &&
                     data.reason?.includes('SEI payload')) {
-                    console.log('⚠️ Ignoring SEI payload error for HTTPS stream (non-critical)');
                     return; // Ignore error ini untuk HTTPS streams
                 }
 
                 if (data.fatal) {
-                    console.error('💀 Fatal HLS error:', data.type, data.details);
+                    console.error('Fatal HLS error:', data.type, data.details);
                     switch (data.type) {
                         case Hls.ErrorTypes.NETWORK_ERROR:
-                            console.log('🔄 Attempting to recover network error');
                             if (isHttpsStream) {
-                                // Delay recovery untuk HTTPS streams
                                 setTimeout(() => hls.startLoad(), 1000);
                             } else {
                                 hls.startLoad();
                             }
                             break;
                         case Hls.ErrorTypes.MEDIA_ERROR:
-                            console.log('🔄 Attempting to recover media error');
                             hls.recoverMediaError();
                             break;
                         default:
-                            console.log('💥 Cannot recover, destroying HLS');
                             hls.destroy();
                             break;
                     }
                 } else {
                     // Handle non-fatal errors khusus HTTPS
                     if (isHttpsStream && data.details === 'bufferStalledError') {
-                        console.log('🔄 HTTPS Buffer stalled - micro seek recovery');
                         try {
                             if (video.currentTime > 0) {
                                 video.currentTime += 0.1;
                             }
                         } catch {
-                            console.warn('Micro seek failed');
+                            // Ignore micro seek failure
                         }
                     }
-                }
-            });
-
-            // Additional monitoring dengan conditional logging
-            hls.on(Hls.Events.FRAG_BUFFERED, () => {
-                if (!isHttpsStream) {
-                    console.log('⚙️ Fragment buffered successfully');
-                }
-            });
-
-            hls.on(Hls.Events.BUFFER_APPENDED, () => {
-                if (!isHttpsStream) {
-                    console.log('📈 Buffer appended successfully');
                 }
             });
 
@@ -197,15 +155,13 @@ const VideoPlayer = ({
 
                 const handleHttpsStall = () => {
                     httpsStallCount++;
-                    console.log(`🐌 HTTPS Stream stalled (#${httpsStallCount})`);
 
                     // Recovery untuk HTTPS stalls
                     if (httpsStallCount > 3) {
-                        console.log('🔄 Too many HTTPS stalls - forcing recovery');
+                        console.warn('Too many HTTPS stalls - forcing recovery');
                         try {
                             hls.recoverMediaError();
                         } catch {
-                            console.log('Recovery failed, restarting load');
                             hls.startLoad();
                         }
                         httpsStallCount = 0; // Reset counter
@@ -214,16 +170,12 @@ const VideoPlayer = ({
 
                 const handleHttpsPlaying = () => {
                     if (httpsStallCount > 0) {
-                        console.log('▶️ HTTPS Stream recovered');
                         httpsStallCount = 0; // Reset stall counter
                     }
                 };
 
                 video.addEventListener('stalled', handleHttpsStall);
                 video.addEventListener('playing', handleHttpsPlaying);
-                video.addEventListener('waiting', () => {
-                    console.log('⏳ HTTPS Stream waiting for data');
-                });
 
                 // Cleanup listeners saat component unmount
                 const originalCleanup = () => {
@@ -238,7 +190,7 @@ const VideoPlayer = ({
                 return originalCleanup;
             }
         } else {
-            console.log('HLS not supported');
+            console.warn('HLS not supported');
         }
 
         return () => {

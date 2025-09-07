@@ -293,7 +293,7 @@ const ControlCenter = () => {
             return (
                 <div
                     key={position}
-                    className="relative bg-gray-900 rounded-lg overflow-hidden group cursor-move"
+                    className="relative bg-[#24252d] rounded-lg overflow-hidden group cursor-move"
                     draggable
                     onDragStart={(e) => handleDragStart(e, selectedCamera)}
                     onDragOver={handleDragOver}
@@ -306,7 +306,7 @@ const ControlCenter = () => {
                         controls={false}
                         className={`w-full h-full ${selectedCamera.aspectMode === 'cover' ? 'object-cover' : 'object-contain'}`}
                     />
-                    <div className="absolute top-2 left-2 bg-black bg-opacity-60 px-2 py-1 rounded text-white text-xs pointer-events-none">
+                    <div className="absolute top-2 left-2 bg-black/30 backdrop-blur-md px-2 py-1 rounded text-white text-xs pointer-events-none">
                         {selectedCamera.camera.name}
                     </div>
                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -345,7 +345,7 @@ const ControlCenter = () => {
         return (
             <div
                 key={position}
-                className="bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-600 cursor-pointer hover:bg-gray-700 hover:border-gray-500 transition-colors"
+                className="bg-[#24252d] rounded-lg flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-600 cursor-pointer hover:bg-gray-700 hover:border-gray-500 transition-colors"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, position)}
                 onClick={() => {
@@ -356,8 +356,8 @@ const ControlCenter = () => {
             >
                 <div className="text-center pointer-events-none">
                     <div className="text-4xl mb-2">📹</div>
-                    <p className="text-sm">
-                        {sidebarCollapsed ? 'Klik untuk buka sidebar' : 'Pilih kamera dari sidebar atau drag & drop'}
+                    <p className={`text-xs ${!sidebarCollapsed ? 'px-[10%]' : ''}`}>
+                        {sidebarCollapsed ? 'Klik untuk buka sidebar' : 'Pilih kamera dari sidebar, drag n drop untuk mengatur posisi'}
                     </p>
                 </div>
             </div>
@@ -365,9 +365,9 @@ const ControlCenter = () => {
     };
 
     return (
-        <div className="h-screen bg-gray-900 text-white flex">
+        <div className="h-screen bg-[#0e0e17] text-white flex">
             {/* Sidebar */}
-            <div className={`${sidebarCollapsed ? 'w-16' : 'w-80'} bg-gray-800 transition-all duration-300 flex-shrink-0 h-full flex flex-col`}>
+            <div className={`${sidebarCollapsed ? 'w-16' : 'w-80 shadow-[0_0_14px_rgba(255,255,255,0.2)]'} bg-[#0e0e17] transition-all duration-300 flex-shrink-0 h-full flex flex-col`}>
                 <div className="p-4 flex flex-col h-full">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-4 flex-shrink-0">
@@ -392,7 +392,7 @@ const ControlCenter = () => {
                                         placeholder="Cari kamera..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full bg-gray-700 text-white placeholder-gray-400 px-3 py-2 pl-10 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                                        className="w-full bg-[#24252d] text-white placeholder-gray-400 px-3 py-2 pl-10 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
                                     />
                                     <svg
                                         className="absolute left-3 top-2.5 h-4 w-4 text-gray-400"
@@ -417,7 +417,7 @@ const ControlCenter = () => {
 
                             {/* Camera List - flex grow */}
                             <div className="flex-1 mb-4 min-h-0">
-                                <div className="h-full overflow-y-auto space-y-2">
+                                <div className="h-full overflow-y-auto space-y-2 scrollbar-desktop">
                                     {loading ? (
                                         <div className="flex justify-center py-8">
                                             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
@@ -450,10 +450,10 @@ const ControlCenter = () => {
                                                         key={camera.id}
                                                         onClick={() => canSelect && handleCameraSelect(camera)}
                                                         className={`flex items-center p-3 rounded-lg transition-colors ${!canSelect
-                                                            ? 'bg-gray-800 opacity-50 cursor-not-allowed'
+                                                            ? 'bg-[#24252d] opacity-50 cursor-not-allowed'
                                                             : isActive
                                                                 ? 'bg-blue-600 hover:bg-blue-700 border-2 border-blue-400 cursor-pointer'
-                                                                : 'bg-gray-700 hover:bg-gray-600 cursor-pointer'
+                                                                : 'bg-[#24252d] hover:bg-[#3a3a3a] cursor-pointer'
                                                             }`}
                                                     >
                                                         <div className="w-12 h-8 bg-gray-600 rounded mr-3 flex-shrink-0 overflow-hidden">
@@ -498,7 +498,7 @@ const ControlCenter = () => {
                                             onClick={() => handleLayoutChange(layout as ViewLayout)}
                                             className={`p-3 rounded-lg border-2 transition-colors ${viewLayout === layout
                                                 ? 'border-blue-500 bg-blue-600'
-                                                : 'border-gray-600 bg-gray-700 hover:bg-gray-600'
+                                                : 'border-gray-600 bg-[#24252d] hover:bg-[#3a3a3a] hover:border-gray-500'
                                                 }`}
                                         >
                                             <div className="text-center">
@@ -511,7 +511,7 @@ const ControlCenter = () => {
                                 {/* Back to Home Button */}
                                 <button
                                     onClick={() => navigate('/')}
-                                    className="w-full p-3 rounded-lg bg-gray-700 hover:bg-gray-600 border-2 border-gray-600 hover:border-gray-500 transition-colors flex items-center justify-center gap-2"
+                                    className="w-full p-3 rounded-lg bg-[#24252d] hover:bg-[#3a3a3a] border-2 border-gray-600 hover:border-gray-500 transition-colors flex items-center justify-center gap-2"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />

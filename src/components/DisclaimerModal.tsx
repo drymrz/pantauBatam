@@ -22,7 +22,7 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) =>
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white/20 rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto backdrop-blur-lg">
                 <div className="p-6">
                     {/* Header */}
                     <div className="flex items-center mb-4">
@@ -31,17 +31,13 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) =>
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
-                        <h2 className="text-xl font-bold text-gray-900">Informasi Penting</h2>
+                        <h2 className="text-xl font-bold text-white">Informasi Penting</h2>
                     </div>
 
                     {/* Content */}
-                    <div className="mb-6 text-gray-700 leading-relaxed">
+                    <div className="mb-6 text-white leading-relaxed">
                         <p className="mb-4">
-                            <strong>PantauBatam</strong> adalah website yang bertujuan untuk membantu mengumpulkan semua jaringan CCTV publik yang tersedia dari beberapa website resmi pemerintah.
-                        </p>
-
-                        <p className="mb-4">
-                            Tujuan utama website ini adalah untuk membantu masyarakat Batam melihat kondisi real-time daerah mereka melalui kamera CCTV yang sudah tersedia untuk umum.
+                            <strong>PantauBatam</strong> adalah website yang bertujuan untuk membantu masyarakat Batam melihat kondisi real-time daerah mereka melalui kamera CCTV yang sudah tersedia untuk umum.
                         </p>
 
                         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4">
@@ -52,7 +48,7 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) =>
                                 <div className="text-sm">
                                     <p className="font-medium text-yellow-800 mb-1">Disclaimer:</p>
                                     <ul className="text-yellow-700 space-y-1">
-                                        <li>• Semua kamera CCTV yang ditampilkan adalah milik dan tanggung jawab pihak pemerintah</li>
+                                        <li>• CCTV yang ditampilkan adalah milik dan tanggung jawab pihak pemerintah</li>
                                         <li>• Website ini tidak memiliki kendali atas kualitas atau ketersediaan stream</li>
                                         <li>• Gunakan informasi ini dengan bijak dan bertanggung jawab</li>
                                     </ul>
@@ -60,7 +56,7 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) =>
                             </div>
                         </div>
 
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-white">
                             Dengan melanjutkan, Anda memahami dan menyetujui bahwa penggunaan website ini sepenuhnya menjadi tanggung jawab Anda.
                         </p>
                     </div>
@@ -72,9 +68,9 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) =>
                                 type="checkbox"
                                 checked={dontShowToday}
                                 onChange={(e) => setDontShowToday(e.target.checked)}
-                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                className="w-4 h-4 text-white bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                             />
-                            <span className="ml-2 text-sm text-gray-700">
+                            <span className="ml-2 text-sm text-white">
                                 Jangan tampilkan lagi untuk hari ini
                             </span>
                         </label>
