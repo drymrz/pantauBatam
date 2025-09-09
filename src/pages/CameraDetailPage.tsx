@@ -290,6 +290,8 @@ const CameraDetailPage = () => {
         const selectedCamera = selectedCameras.find(item => item.position === position);
 
         if (selectedCamera) {
+            const isNonRealtime = !selectedCamera.camera.realtime;
+
             return (
                 <div key={position} className={`relative bg-[#24252d] rounded-lg overflow-hidden group flex flex-col min-h-0 ${viewLayout === 2 ? 'max-h-[25dvh]' : ''}`}>
                     <div
@@ -304,9 +306,26 @@ const CameraDetailPage = () => {
                             className={`w-full h-full ${selectedCamera.aspectMode === 'cover' ? 'object-cover' : 'object-contain'}`}
                         />
                     </div>
+
+                    {/* Camera Name */}
                     <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md px-2 py-1 rounded text-white text-xs">
                         {selectedCamera.camera.name}
                     </div>
+
+                    {/* Non-Realtime Alert Overlay - Bottom Full Width */}
+                    {isNonRealtime && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-orange-500/90 backdrop-blur-md border-t border-orange-400 pointer-events-none">
+                            <div className="px-2 py-1 text-center text-white">
+                                <div className={`font-medium ${viewLayout === 1 ? 'text-base' :
+                                    viewLayout === 2 ? 'text-xs' :
+                                        'text-[10px]'
+                                    }`}>
+                                    Camera ini sedang tidak realtime
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                             onClick={() => toggleCameraFullscreen(selectedCamera.camera.id)}
@@ -388,6 +407,8 @@ const CameraDetailPage = () => {
                             {(() => {
                                 const fullscreenCamera = selectedCameras.find(item => item.camera.id === fullscreenCameraId);
                                 if (fullscreenCamera) {
+                                    const isNonRealtime = !fullscreenCamera.camera.realtime;
+
                                     return (
                                         <div
                                             onDoubleClick={() => handleDoubleClick(fullscreenCamera.camera.id)}
@@ -400,9 +421,23 @@ const CameraDetailPage = () => {
                                                 controls={false}
                                                 className={`w-full h-full ${fullscreenCamera.aspectMode === 'cover' ? 'object-cover' : 'object-contain'}`}
                                             />
+
+                                            {/* Camera Name */}
                                             <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md px-2 py-1 rounded text-white text-xs">
                                                 {fullscreenCamera.camera.name}
                                             </div>
+
+                                            {/* Non-Realtime Alert for Fullscreen */}
+                                            {isNonRealtime && (
+                                                <div className="absolute bottom-0 left-0 right-0 bg-orange-500/90 backdrop-blur-md border-t border-orange-400 pointer-events-none">
+                                                    <div className="px-4 py-2 text-center text-white">
+                                                        <div className="font-medium text-lg">
+                                                            Camera ini sedang tidak realtime
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Exit Fullscreen Button */}
                                             <button
                                                 onClick={() => toggleCameraFullscreen(fullscreenCamera.camera.id)}
@@ -482,9 +517,11 @@ const CameraDetailPage = () => {
                                             onClick={() => canSelect && handleCameraSelect(cam)}
                                             className={`flex-shrink-0 w-36 h-24 rounded-lg overflow-hidden cursor-pointer transition-all duration-200 snap-start ${!canSelect
                                                 ? 'opacity-50 cursor-not-allowed'
-                                                : isActive
+                                                : isActive && cam.realtime
                                                     ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 scale-105'
-                                                    : 'hover:ring-2 hover:ring-gray-500 hover:ring-offset-2 ring-offset-gray-900 hover:scale-105'
+                                                    : isActive && !cam.realtime
+                                                        ? 'ring-2 ring-orange-500 ring-offset-2 ring-offset-gray-900 scale-105'
+                                                        : 'hover:ring-2 hover:ring-gray-500 hover:ring-offset-2 ring-offset-gray-900 hover:scale-105'
                                                 }`}
                                         >
                                             <div className="relative w-full h-full bg-gray-800">
@@ -511,7 +548,7 @@ const CameraDetailPage = () => {
                                                 {/* Status indicators */}
                                                 <div className="absolute top-2 right-2 flex gap-1">
                                                     {isActive && (
-                                                        <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse shadow-lg border-2 border-white"></div>
+                                                        <div className={`w-3 h-3 ${cam.realtime ? 'bg-blue-500' : 'bg-orange-500'} rounded-full animate-pulse shadow-lg border-2 border-white`}></div>
                                                     )}
                                                     {!canSelect && !isActive && (
                                                         <div className="bg-red-600 text-white text-xs px-1 rounded">FULL</div>

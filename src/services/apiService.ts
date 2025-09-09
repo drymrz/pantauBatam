@@ -1,15 +1,15 @@
 import type { Camera, ApiResponse } from '../types';
 import { supabase } from '../config/supabase';
 
-// Fungsi untuk mengambil semua kamera
+// Fungsi untuk mengambil semua kamera aktif
 export const getActiveCameras = async (): Promise<ApiResponse<Camera[]>> => {
     try {
         const { data, error } = await supabase
             .from('cameras')
             .select('*')
             .eq('isActive', true)
-            // .order('created_at', { ascending: false });
-            .order('name', { ascending: true });
+            .order('realtime', { ascending: false }) // Realtime cameras first (true > false)
+            .order('name', { ascending: true }); // Then sort by name A-Z
 
         if (error) {
             console.error('Error fetching cameras:', error);
@@ -37,8 +37,7 @@ export const getAllCameras = async (): Promise<ApiResponse<Camera[]>> => {
         const { data, error } = await supabase
             .from('cameras')
             .select('*')
-            // .order('created_at', { ascending: false });
-            .order('name', { ascending: true });
+            .order('name', { ascending: true }); // Then sort by name A-Z
 
         if (error) {
             console.error('Error fetching cameras:', error);

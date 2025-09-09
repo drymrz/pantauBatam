@@ -422,6 +422,8 @@ const ControlCenter = () => {
         const isHovering = dragHoverPosition === position;
 
         if (selectedCamera) {
+            const isNonRealtime = !selectedCamera.camera.realtime;
+
             return (
                 <div
                     key={position}
@@ -442,9 +444,28 @@ const ControlCenter = () => {
                         controls={false}
                         className={`w-full h-full pointer-events-none ${selectedCamera.aspectMode === 'cover' ? 'object-cover' : 'object-contain'}`}
                     />
+
+                    {/* Camera Name */}
                     <div className="absolute top-2 left-2 bg-black/30 backdrop-blur-md px-2 py-1 rounded text-white text-xs pointer-events-none">
                         {selectedCamera.camera.name}
                     </div>
+
+                    {/* Non-Realtime Alert Overlay - Bottom Full Width */}
+                    {isNonRealtime && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-orange-500/90 backdrop-blur-md border-t border-orange-400 pointer-events-none">
+                            <div className="px-2 py-1 text-center text-white">
+                                <div className={`font-medium ${viewLayout === 1 ? 'text-lg' :
+                                    viewLayout === 2 ? 'text-base' :
+                                        viewLayout === 4 ? 'text-sm' :
+                                            viewLayout === 9 ? 'text-xs' :
+                                                'text-[10px]'
+                                    }`}>
+                                    Camera ini sedang tidak realtime
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                             onClick={(e) => {
@@ -670,10 +691,39 @@ const ControlCenter = () => {
             </div>
 
             {/* Main Content - Full Height */}
-            <div className="flex-1 p-4 h-full">
+            <div className="flex-1 p-4 h-full relative">
                 <div className={`grid ${getGridClass()} gap-2 h-full w-full`}>
                     {Array.from({ length: viewLayout }, (_, index) => renderCameraSlot(index))}
                 </div>
+
+                {/* Global Non-Realtime Alert - Only show for layouts other than 1 */}
+                {(() => {
+                    // Only show global alert for multi-camera layouts (not layout 1)
+                    if (viewLayout === 1) return null;
+
+                    const nonRealtimeCameras = selectedCameras.filter(item => !item.camera.realtime);
+                    const hasNonRealtime = nonRealtimeCameras.length > 0;
+
+                    if (!hasNonRealtime) return null;
+
+                    return (
+                        <div className="absolute top-4 right-4 bg-orange-500/95 backdrop-blur-md border border-orange-400 rounded-lg px-4 py-3 shadow-lg max-w-sm">
+                            <div className="flex items-start gap-3 text-white">
+                                <svg className="h-5 w-5 text-orange-200 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <div className="text-sm">
+                                    <div className="font-semibold">
+                                        {nonRealtimeCameras.length === 1
+                                            ? 'Ada Kamera Yang Tidak Realtime'
+                                            : `Ada ${nonRealtimeCameras.length} Kamera Yang Tidak Realtime`
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
         </div>
     );
