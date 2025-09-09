@@ -3,13 +3,12 @@ export interface Camera {
     name: string;
     streamUrl: string;
     thumbnail?: string;
-    location?: string;
-    description?: string;
-    isActive?: boolean;
+    isActive: boolean;
+    realtime: boolean;
 }
 
 export interface ApiResponse<T> {
     success: boolean;
-    data: T;
+    data?: T;
     message?: string;
 }

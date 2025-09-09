@@ -6,6 +6,10 @@ export const getAllCameras = async (): Promise<ApiResponse<Camera[]>> => {
     return apiService.getAllCameras();
 };
 
+export const getActiveCameras = async (): Promise<ApiResponse<Camera[]>> => {
+    return apiService.getActiveCameras();
+};
+
 // Fungsi untuk mengambil detail kamera berdasarkan ID
 export const getCameraById = async (id: string): Promise<ApiResponse<Camera | null>> => {
     return apiService.getCameraById(id);

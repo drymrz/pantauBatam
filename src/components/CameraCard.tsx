@@ -56,8 +56,8 @@ const CameraCard = ({ camera, onClick, isSelected }: CameraCardProps) => {
         />
         <div className="absolute top-0 right-0 p-2">
           <div className=" backdrop-blur-lg bg-black/5 w-full flex rounded-full p-2 px-3 border-none items-center">
-            <div className="w-[0.35rem] h-[0.35rem] bg-green-400 rounded-full"></div>
-            <h3 className="text-white truncate ms-3 font-medium text-sm">Live</h3>
+            <div className={`w-[0.35rem] h-[0.35rem] rounded-full ${camera.realtime ? 'bg-green-400' : 'bg-red-400'}`}></div>
+            <h3 className="text-white truncate ms-3 font-medium text-sm">{camera.realtime ? 'Live' : 'Delay'}</h3>
           </div>
         </div>
         <div className="absolute bottom-0 left-0 right-0 flex w-full gap-1 p-2">

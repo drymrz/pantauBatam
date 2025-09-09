@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllCameras, getCameraById } from '../services/cameraService';
+import { getActiveCameras, getCameraById } from '../services/cameraService';
 import type { Camera } from '../types';
 
 export const useAllCameras = () => {
@@ -11,7 +11,7 @@ export const useAllCameras = () => {
         const fetchCameras = async () => {
             try {
                 setIsLoading(true);
-                const response = await getAllCameras();
+                const response = await getActiveCameras();
 
                 if (response.success && response.data) {
                     setCameras(response.data);

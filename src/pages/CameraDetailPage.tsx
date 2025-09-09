@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import VideoPlayer from '../components/VideoPlayer';
-import { getAllCameras } from '../services/cameraService';
+import { getActiveCameras } from '../services/cameraService';
 import type { Camera } from '../types';
 
 type ViewLayout = 1 | 2 | 4;
@@ -189,7 +189,7 @@ const CameraDetailPage = () => {
 
     const fetchCameras = async () => {
         try {
-            const response = await getAllCameras();
+            const response = await getActiveCameras();
             if (response.success && response.data) {
                 setAllCameras(response.data);
             }

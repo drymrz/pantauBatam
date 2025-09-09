@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getAllCameras } from '../services/cameraService';
+import { getActiveCameras } from '../services/cameraService';
 import { useScreenSize, SCREEN_SIZE } from '../hooks/useScreenSize';
 import type { Camera } from '../types';
 import Sidebar from '../components/Sidebar';
@@ -23,7 +23,7 @@ const DashboardPage = () => {
     const fetchCameras = async () => {
       try {
         setIsLoading(true);
-        const response = await getAllCameras();
+        const response = await getActiveCameras();
 
         if (response.success && response.data) {
           setCameras(response.data);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { addCamera, updateCamera } from '../../services/cameraService';
 import { uploadThumbnail } from '../../services/storageService';
-import type { Camera } from '../../types';
+import type { Camera } from '../../types/index';
 
 interface CameraFormProps {
     camera?: Camera | null;
@@ -10,10 +10,12 @@ interface CameraFormProps {
 }
 
 const CameraForm = ({ camera, onSuccess, onClose }: CameraFormProps) => {
-    const [formData, setFormData] = useState<Omit<Camera, 'id'>>({
+    const [formData, setFormData] = useState({
         name: '',
         streamUrl: '',
-        thumbnail: ''
+        thumbnail: '',
+        isActive: true,
+        realtime: true
     });
     const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
     const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
@@ -25,7 +27,9 @@ const CameraForm = ({ camera, onSuccess, onClose }: CameraFormProps) => {
             setFormData({
                 name: camera.name,
                 streamUrl: camera.streamUrl,
-                thumbnail: camera.thumbnail || ''
+                thumbnail: camera.thumbnail || '',
+                isActive: camera.isActive,
+                realtime: camera.realtime
             });
             setThumbnailPreview(camera.thumbnail || '');
         }
@@ -157,6 +161,33 @@ const CameraForm = ({ camera, onSuccess, onClose }: CameraFormProps) => {
                             />
                         </div>
                     )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="flex items-center space-x-2 text-sm font-medium text-gray-300">
+                            <input
+                                type="checkbox"
+                                name="isActive"
+                                checked={formData.isActive}
+                                onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                                className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                            />
+                            <span>Camera is Active</span>
+                        </label>
+                    </div>
+                    <div>
+                        <label className="flex items-center space-x-2 text-sm font-medium text-gray-300">
+                            <input
+                                type="checkbox"
+                                name="realtime"
+                                checked={formData.realtime}
+                                onChange={(e) => setFormData(prev => ({ ...prev, realtime: e.target.checked }))}
+                                className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                            />
+                            <span>Realtime Stream</span>
+                        </label>
+                    </div>
                 </div>
 
                 <div className="flex space-x-3 pt-4">

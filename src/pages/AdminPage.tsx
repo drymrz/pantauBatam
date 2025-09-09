@@ -209,13 +209,15 @@ const AdminPage = () => {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Stream URL</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Thumbnail</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Realtime</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Active</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-700">
                                     {cameras.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} className="px-6 py-4 text-center text-gray-400">
+                                            <td colSpan={7} className="px-6 py-4 text-center text-gray-400">
                                                 No cameras found. Click "Add New Camera" to create one.
                                             </td>
                                         </tr>
@@ -235,6 +237,22 @@ const AdminPage = () => {
                                                     ) : (
                                                         <span className="text-gray-400">No thumbnail</span>
                                                     )}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${camera.realtime
+                                                            ? 'bg-green-900 text-green-200'
+                                                            : 'bg-red-900 text-red-200'
+                                                        }`}>
+                                                        {camera.realtime ? '🔴 Live' : '📹 Recorded'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${camera.isActive
+                                                            ? 'bg-green-900 text-green-200'
+                                                            : 'bg-gray-900 text-gray-200'
+                                                        }`}>
+                                                        {camera.isActive ? '✅ Active' : '❌ Inactive'}
+                                                    </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                     <div className="flex space-x-2">

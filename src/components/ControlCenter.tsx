@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { getAllCameras } from '../services/cameraService';
+import { getActiveCameras } from '../services/cameraService';
 import { useScreenSize, SCREEN_SIZE } from '../hooks/useScreenSize';
 import type { Camera } from '../types';
 import VideoPlayer from './VideoPlayer';
@@ -207,7 +207,7 @@ const ControlCenter = () => {
     const fetchCameras = async () => {
         try {
             setLoading(true);
-            const response = await getAllCameras();
+            const response = await getActiveCameras();
             if (response.success && response.data) {
                 setCameras(response.data);
             } else {
@@ -619,7 +619,7 @@ const ControlCenter = () => {
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-sm font-medium truncate">{camera.name}</p>
                                                             <p className="text-xs text-gray-400">
-                                                                {!canSelect && !isActive ? 'Slots Full' : isActive ? 'Active' : 'Live'}
+                                                                {!canSelect && !isActive ? 'Slots Full' : isActive && camera.realtime ? 'Active' : camera.realtime ? 'Live' : 'Delay ⚠️'}
                                                             </p>
                                                         </div>
                                                         {isActive && (

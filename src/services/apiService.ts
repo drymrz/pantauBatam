@@ -2,6 +2,36 @@ import type { Camera, ApiResponse } from '../types';
 import { supabase } from '../config/supabase';
 
 // Fungsi untuk mengambil semua kamera
+export const getActiveCameras = async (): Promise<ApiResponse<Camera[]>> => {
+    try {
+        const { data, error } = await supabase
+            .from('cameras')
+            .select('*')
+            .eq('isActive', true)
+            // .order('created_at', { ascending: false });
+            .order('name', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching cameras:', error);
+            return {
+                success: false,
+                message: error.message
+            };
+        }
+
+        return {
+            success: true,
+            data: data || []
+        };
+    } catch (error) {
+        console.error('Error fetching cameras:', error);
+        return {
+            success: false,
+            message: error instanceof Error ? error.message : 'Unknown error occurred'
+        };
+    }
+};
+
 export const getAllCameras = async (): Promise<ApiResponse<Camera[]>> => {
     try {
         const { data, error } = await supabase
@@ -78,7 +108,9 @@ export const addCamera = async (camera: Omit<Camera, 'id'>): Promise<ApiResponse
             .insert([{
                 name: camera.name,
                 streamUrl: camera.streamUrl,
-                thumbnail: camera.thumbnail
+                thumbnail: camera.thumbnail,
+                isActive: camera.isActive,
+                realtime: camera.realtime
             }])
             .select()
             .single();
@@ -115,7 +147,9 @@ export const updateCamera = async (id: string, camera: Partial<Camera>): Promise
             .update({
                 name: camera.name,
                 streamUrl: camera.streamUrl,
-                thumbnail: camera.thumbnail
+                thumbnail: camera.thumbnail,
+                isActive: camera.isActive,
+                realtime: camera.realtime
             })
             .eq('id', id)
             .select()
