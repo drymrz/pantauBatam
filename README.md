@@ -6,10 +6,14 @@ Aplikasi web untuk melihat streaming CCTV publik di kota Batam. Proyek ini dibua
 
 - 🎥 Streaming video CCTV menggunakan format HLS
 - 📱 Tampilan responsif (mobile, tablet, dan desktop)
-- 🔍 Pencarian kamera berdasarkan nama dan lokasi
+- 🔍 Pencarian kamera berdasarkan nama
 - 📊 Control Center dengan kemampuan menampilkan beberapa kamera sekaligus
-- 🖥️ Grid layout yang dapat dikonfigurasi (1, 2, 4, 8, atau 16 kamera)
-- 📁 Persiapan untuk integrasi dengan database MySQL
+- 🖥️ Grid layout yang dapat dikonfigurasi (1, 2, 4, 9, atau 16 kamera)
+- ⌨️ **Keyboard Navigation** - Navigasi kamera dengan arrow keys (desktop layout 1)
+- 🖱️ **Enhanced Drag & Drop** - Drag kamera dari sidebar ke preview dan reposisi antar preview
+- 📱 **Mobile Fullscreen** - Individual camera fullscreen dengan double-tap gesture
+- 🎯 **Auto-scroll** - Sidebar dan carousel mengikuti kamera aktif
+- 📁 Backend menggunakan Supabase (PostgreSQL)
 
 ## Teknologi yang Digunakan
 
@@ -18,6 +22,7 @@ Aplikasi web untuk melihat streaming CCTV publik di kota Batam. Proyek ini dibua
 - Tailwind CSS
 - React Router DOM
 - HLS.js untuk streaming video
+- Supabase untuk backend dan database
 - Vite sebagai build tool
 
 ## Cara Menjalankan Aplikasi
@@ -30,12 +35,14 @@ Aplikasi web untuk melihat streaming CCTV publik di kota Batam. Proyek ini dibua
 ### Langkah-langkah
 
 1. Clone repository
+
 ```bash
 git clone https://github.com/username/pantauBatam.git
 cd pantauBatam
 ```
 
 2. Install dependensi
+
 ```bash
 npm install
 # atau
@@ -43,6 +50,7 @@ yarn install
 ```
 
 3. Jalankan aplikasi dalam mode development
+
 ```bash
 npm run dev
 # atau
@@ -64,12 +72,36 @@ yarn dev
 
 ## Fitur Responsif
 
-- **Mobile**: Tampilan galleri kamera dengan detail pada halaman terpisah
-- **Tablet/Desktop**: Tampilan galleri kamera dengan link ke Control Center, serta kemampuan menampilkan beberapa kamera sekaligus dalam grid
+### Mobile
+
+- Tampilan galleri kamera dengan detail pada halaman terpisah
+- **Individual camera fullscreen** dengan double-tap gesture
+- **Rotation guide** untuk landscape viewing
+- **Auto-scroll carousel** ke kamera aktif
+
+### Desktop
+
+- Tampilan galleri kamera dengan link ke Control Center
+- **Grid view** dengan kemampuan menampilkan beberapa kamera sekaligus
+- **Keyboard navigation** dengan arrow keys (layout 1)
+- **Drag & drop** dari sidebar ke preview dan reposisi antar preview
+- **Auto-scroll sidebar** mengikuti kamera aktif saat keyboard navigation
 
 ## Mode Development vs Production
 
-Saat ini, aplikasi menggunakan data dummy untuk kamera. Untuk produksi, ubah flag `useMySQL` di `databaseService.ts` menjadi `true` dan implementasikan koneksi MySQL.
+Aplikasi menggunakan Supabase sebagai backend untuk menyimpan data kamera dan konfigurasi. Data kamera dapat dikelola melalui Supabase dashboard atau melalui API yang tersedia.
+
+## Build & Deploy
+
+```bash
+# Build untuk production
+npm run build
+
+# Preview build hasil
+npm run preview
+```
+
+Hasil build akan tersimpan di folder `dist/` dan siap deploy ke hosting static seperti Vercel, Netlify, atau server web lainnya.
 
 ## Lisensi
 
